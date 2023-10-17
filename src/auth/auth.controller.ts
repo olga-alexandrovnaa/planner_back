@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards, Response } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import * as moment from 'moment';
 import { AuthGuard } from './auth.guard';
@@ -31,9 +31,20 @@ export class AuthController {
     },
   })
   @Post('registration')
-  async registration(@Body() registerUserDTO: RegisterUserDTO) {
+  async registration(@Body() registerUserDTO: RegisterUserDTO, @Response() res) {
     const registerInfo: AuthResponse = await this.authService.registration(registerUserDTO);
-    return registerInfo;
+
+    res.cookie('accessToken', registerInfo.accessToken, {
+      sameSite: 'strict',
+      httpOnly: true,
+    });
+    res.cookie('refreshToken', registerInfo.refreshToken, {
+      sameSite: 'strict',
+      httpOnly: true,
+    });
+    return res.send(registerInfo.user);
+
+    // return registerInfo;
   }
 
   @ApiOperation({
@@ -51,7 +62,7 @@ export class AuthController {
     },
   })
   @Post('login')
-  async login(@Body() loginUserDTO: LoginUserDTO, @Req() req: RequestExt) {
+  async login(@Body() loginUserDTO: LoginUserDTO, @Req() req: RequestExt, @Response() res) {
     const userData = await this.authService.login(loginUserDTO);
 
     console.log(
@@ -59,7 +70,16 @@ export class AuthController {
       `${moment().format('yyyy-MM-DD HH:mm:ss.SSS')}`,
       `Logged in: \x1b[1;36m${userData.user.userName}\x1b[0m`,
     );
-    return userData;
+
+    res.cookie('accessToken', userData.accessToken, {
+      sameSite: 'strict',
+      httpOnly: true,
+    });
+    res.cookie('refreshToken', userData.refreshToken, {
+      sameSite: 'strict',
+      httpOnly: true,
+    });
+    return res.send(userData.user);
   }
 
   @ApiOperation({ summary: 'Выход' })
@@ -74,7 +94,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Обновление refreshToken' })
   @ApiResponse({ status: 200 | 401, type: Object })
   @Post('refresh')
-  async refreshToken(@Body() refreshTokenDTO: RefreshTokenDTO, @Req() req: RequestExt) {
+  async refreshToken(@Body() refreshTokenDTO: RefreshTokenDTO, @Req() req: RequestExt, @Response() res) {
     const { refreshToken } = refreshTokenDTO;
     const userData = await this.authService.refresh(refreshToken);
 
@@ -83,6 +103,14 @@ export class AuthController {
       `${moment().format('yyyy-MM-DD HH:mm:ss.SSS')}`,
       `Refreshed: \x1b[1;36m${userData.user.userName}\x1b[0m`,
     );
-    return userData;
+    res.cookie('accessToken', userData.accessToken, {
+      sameSite: 'strict',
+      httpOnly: true,
+    });
+    res.cookie('refreshToken', userData.refreshToken, {
+      sameSite: 'strict',
+      httpOnly: true,
+    });
+    return res.send(userData.user);
   }
 }
