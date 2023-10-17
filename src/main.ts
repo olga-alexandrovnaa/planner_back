@@ -10,12 +10,18 @@ import * as moment from 'moment';
 import { LogRequestsInterceptor } from './interceptors/log-requests.interceptor';
 import { logger } from './middlewares/logger.middleware';
 import { identifier } from './middlewares/identifier.middleware';
+import * as fs from 'fs';
 
 moment.locale('ru');
 
 async function bootstrap() {
   // Config
-  const app = await NestFactory.create(AppModule);
+  const httpsOptions = {
+    key: fs.readFileSync(process.env.SSL_KEY_PATH ?? '', 'utf8'),
+    cert: fs.readFileSync(process.env.SSL_CERTIFICATE_PATH ?? '', 'utf8'),
+  };
+
+  const app = await NestFactory.create(AppModule, { httpsOptions });
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
   app.enableCors({
