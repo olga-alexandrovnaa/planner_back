@@ -36,7 +36,7 @@ export class AuthController {
       sameSite: 'strict',
       httpOnly: true,
     });
-    return res.send({user: registerInfo.user, accessToken: registerInfo.accessToken});
+    return res.send({ user: registerInfo.user, accessToken: registerInfo.accessToken });
 
     // return registerInfo;
   }
@@ -69,7 +69,7 @@ export class AuthController {
       sameSite: 'strict',
       httpOnly: true,
     });
-    return res.send({user: userData.user, accessToken: userData.accessToken});
+    return res.send({ user: userData.user, accessToken: userData.accessToken });
   }
 
   @ApiOperation({ summary: 'Выход' })
@@ -85,11 +85,7 @@ export class AuthController {
   @ApiResponse({ status: 200 | 401, type: Object })
   @Post('refresh')
   async refreshToken(@Req() req: RequestExt, @Response() res) {
-    if (
-      req.cookies &&
-      'refreshToken' in req.cookies &&
-      req.cookies.user_token.length > 0
-    ) {
+    if (req.cookies && 'refreshToken' in req.cookies && req.cookies.user_token.length > 0) {
       const refreshToken = req.cookies.token;
 
       const userData = await this.authService.refresh(refreshToken);
@@ -103,10 +99,9 @@ export class AuthController {
         sameSite: 'strict',
         httpOnly: true,
       });
-      return res.send({user: userData.user, accessToken: userData.accessToken});
+      return res.send({ user: userData.user, accessToken: userData.accessToken });
     }
 
     return new UnauthorizedException('Неверный пароль');
-
   }
 }

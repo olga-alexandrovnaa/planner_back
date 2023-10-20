@@ -70,7 +70,7 @@ export class UsersService {
     return this.prisma.password.upsert({
       where: { userId },
       create: { hash, userId },
-      update: { createdAt: new Date(), hash },
+      update: { hash },
     });
   }
 

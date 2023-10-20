@@ -12,7 +12,7 @@ UserExtToTokenMapper.map = (user) => {
   return {
     id: user.id,
     userName: user.userName,
-    name: user.firstName,
+    name: user.name,
   };
 };
 

@@ -26,6 +26,7 @@ export class AuthService {
 
     const user = await this.usersService.createUser({
       userName,
+      name,
     });
     const userExt = await this.usersService.userExt({ id: user.id });
     if (!userExt) throw new UnauthorizedException();
