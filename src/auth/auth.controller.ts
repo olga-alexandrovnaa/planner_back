@@ -24,9 +24,8 @@ export class AuthController {
         name: { type: 'string' },
         userName: { type: 'string' },
         password: { type: 'string' },
-        passwordConfirm: { type: 'string' },
       },
-      required: ['name', 'userName', 'password', 'passwordConfirm'],
+      required: ['name', 'userName', 'password'],
     },
   })
   @Post('registration')

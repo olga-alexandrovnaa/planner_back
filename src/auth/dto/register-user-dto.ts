@@ -15,11 +15,6 @@ export class RegisterUserDTO {
 
   @ApiProperty()
   @IsString()
-  @Transform(({ value }) => String(value))
-  readonly passwordConfirm: string;
-
-  @ApiProperty()
-  @IsString()
   @Transform(({ value }) => String(value).trim())
   readonly name: string;
 }
