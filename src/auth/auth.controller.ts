@@ -9,7 +9,7 @@ import { AuthResponse } from './entities/auth-response.entity';
 import { RequestExt } from './entities/request-ext.entity';
 
 @ApiTags('Авторизация')
-@Controller('api/auth')
+@Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
