@@ -5,7 +5,7 @@ import { UsersService } from './users.service';
 import { RequestExt } from '../auth/entities/request-ext.entity';
 
 @ApiTags('Пользователи')
-@Controller('api/users')
+@Controller('users')
 @UseGuards(AuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

@@ -9,7 +9,7 @@ import { AuthResponse } from './entities/auth-response.entity';
 import { RequestExt } from './entities/request-ext.entity';
 
 @ApiTags('Авторизация')
-@Controller('api/auth')
+@Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -33,7 +33,8 @@ export class AuthController {
     const registerInfo: AuthResponse = await this.authService.registration(registerUserDTO);
 
     res.cookie('refreshToken', registerInfo.refreshToken, {
-      sameSite: 'strict',
+      sameSite: 'none',
+      secure: true,
       httpOnly: true,
     });
     return res.send({ user: registerInfo.user, accessToken: registerInfo.accessToken });
@@ -66,7 +67,8 @@ export class AuthController {
     );
 
     res.cookie('refreshToken', userData.refreshToken, {
-      sameSite: 'strict',
+      sameSite: 'none',
+      secure: true,
       httpOnly: true,
     });
     return res.send({ user: userData.user, accessToken: userData.accessToken });
@@ -85,8 +87,8 @@ export class AuthController {
   @ApiResponse({ status: 200 | 401, type: Object })
   @Post('refresh')
   async refreshToken(@Req() req: RequestExt, @Response() res) {
-    if (req.cookies && 'refreshToken' in req.cookies && req.cookies.user_token.length > 0) {
-      const refreshToken = req.cookies.token;
+    if (req.cookies && 'refreshToken' in req.cookies && req.cookies.refreshToken.length > 0) {
+      const refreshToken = req.cookies.refreshToken;
 
       const userData = await this.authService.refresh(refreshToken);
 
@@ -96,7 +98,8 @@ export class AuthController {
         `Refreshed: \x1b[1;36m${userData.user.userName}\x1b[0m`,
       );
       res.cookie('refreshToken', userData.refreshToken, {
-        sameSite: 'strict',
+        sameSite: 'none',
+        secure: true,
         httpOnly: true,
       });
       return res.send({ user: userData.user, accessToken: userData.accessToken });

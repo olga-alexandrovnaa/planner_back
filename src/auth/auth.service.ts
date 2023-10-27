@@ -16,8 +16,8 @@ export class AuthService {
   ) {}
 
   async registration(registerUserDto: RegisterUserDTO): Promise<AuthResponse> {
-    const { userName, password, name, passwordConfirm } = registerUserDto;
-    if (!userName || !password || !name || !passwordConfirm) {
+    const { userName, password, name } = registerUserDto;
+    if (!userName || !password || !name) {
       throw new BadRequestException('Недостаточно данных');
     }
 

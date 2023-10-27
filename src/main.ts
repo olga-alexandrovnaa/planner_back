@@ -16,16 +16,18 @@ moment.locale('ru');
 
 async function bootstrap() {
   // Config
-  const httpsOptions = {
-    key: fs.readFileSync(process.env.SSL_KEY_PATH ?? '', 'utf8'),
-    cert: fs.readFileSync(process.env.SSL_CERTIFICATE_PATH ?? '', 'utf8'),
-  };
+  // const httpsOptions = {
+  //   key: fs.readFileSync(process.env.SSL_KEY_PATH ?? '', 'utf8'),
+  //   cert: fs.readFileSync(process.env.SSL_CERTIFICATE_PATH ?? '', 'utf8'),
+  // };
 
-  const app = await NestFactory.create(AppModule, { httpsOptions });
+  const app = await NestFactory.create(AppModule, { /* httpsOptions */ });
+  app.setGlobalPrefix('api');
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+  console.log('origin: ' + (process.env.ALLOWED_ORIGINS?.split(',').concat(' | ') ?? ''));
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') ?? '',
+    origin: process.env.ALLOWED_ORIGINS, //?.split(',') ?? '',
     credentials: true,
   });
   app.use(cookieParser());
