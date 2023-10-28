@@ -74,15 +74,15 @@ model Task {
 
   name String
 
-  isFood                   Boolean?
+  isFood                   Boolean       @default(false)
   recipe                   String?
   
-  ingredients              Ingregient[]
+  ingredients              Ingredient[]
   repeatDays               RepeatDayTaskWithNotYearInterval[]
   repeatIfYearIntervalDays RepeatDayTaskWithYearInterval[]
   taskRepeatDayCheck       RepeatDayTaskCheck[]
 
-  
+  isDeleted Boolean @default(false)
   deletedAt DateTime? @db.Timestamptz()
 }
 
@@ -105,7 +105,7 @@ model InvestmentType {
   progress InvestmentMonthProgress[]
 
   
-  deletedAt DateTime? @db.Timestamptz()
+  isDeleted Boolean @default(false)
 }
 
 model InvestmentMonthProgress {
@@ -125,6 +125,8 @@ model RepeatDayTaskCheck {
 
   date String
 
+  newDate String?
+
   checked          Boolean @default(false)
   note             String?
   moneyIncomeFact  Float?
@@ -132,7 +134,7 @@ model RepeatDayTaskCheck {
 
   deadline String? 
   
-  deletedAt DateTime? @db.Timestamptz()
+  isDeleted Boolean @default(false)
 
   @@unique([trackerId, date])
 }
@@ -144,11 +146,11 @@ model RepeatDayTaskWithNotYearInterval {
   tracker   Task @relation(fields: [trackerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   intervalPartIndex      Int?
+
   dayFromBeginningInterval Int?
 
-  monthNummber Int?
   weekNumber WeekNumber?
-  weekDayNummber Int?
+  weekDayNumber Int?
 
   moveTypeIfDayNotExists MoveTypeIfDayNotExists?
 }
@@ -159,13 +161,9 @@ model RepeatDayTaskWithYearInterval {
   trackerId Int
   tracker   Task @relation(fields: [trackerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  intervalPartIndex Int?
-  yearDateDay         Int?
-  yearDateMonth       Int?
-
-  monthNummber Int?
-  weekNumber WeekNumber?
-  weekDayNummber Int?
+  intervalPartIndex Int
+  yearDateDay         Int
+  yearDateMonth       Int
 
   moveTypeIfDayNotExists MoveTypeIfDayNotExists?
 }
@@ -177,7 +175,7 @@ model ProductType {
   user      User?     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   userId    Int?
 
-  deletedAt DateTime? @db.Timestamptz()
+  isDeleted Boolean @default(false)
   products Product[] @relation(name: "ProductType")
 }
 
@@ -197,7 +195,7 @@ model Product {
   type          ProductType? @relation(name: "ProductType", fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   measureUnitId Int
   measureUnit   MeasureUnit  @relation(name: "MeasureUnit", fields: [measureUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  includedByIngredients Ingregient[]
+  includedByIngredients Ingredient[]
 
   user      User?     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   userId    Int?
@@ -209,10 +207,10 @@ model OutcomeMeasureUnit {
 
   outcomeOfProduct Float
 
-  includedByIngredients Ingregient[]
+  includedByIngredients Ingredient[]
 }
 
-model Ingregient {
+model Ingredient {
   id       Int       @id @default(autoincrement())
 
   trackerId Int
@@ -266,7 +264,7 @@ model Holiday {
   date String?
 
   weekNumber WeekNumber?
-  weekDayNummber Int?
+  weekDayNumber Int?
 
   moveTypeIfDayNotExists MoveTypeIfDayNotExists?
   text String

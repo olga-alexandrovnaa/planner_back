@@ -1,13 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  Ingregient,
   IntervalType,
   RepeatDayTaskCheck,
   RepeatDayTaskWithNotYearInterval,
   RepeatDayTaskWithYearInterval,
 } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsNumber, IsPositive, IsString, ValidateNested } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsPositive, IsString, ValidateNested } from 'class-validator';
 import { IngregientDto } from './ingredient.dto';
 import { RepeatDayTaskCheckDto } from './task-repeat-day-check.dto';
 import { RepeatDaysDto } from './repeat-days.dto';
@@ -30,65 +29,77 @@ export class CreateTaskDto {
   @IsString()
   readonly name: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => Boolean(value))
   @IsBoolean()
-  readonly isTracker: boolean;
+  readonly isTracker?: boolean;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => String(value).trim())
   @IsString()
-  readonly intervalPart: IntervalType;
+  readonly intervalPart?: IntervalType;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
   @IsPositive()
-  readonly intervalLength: number;
+  readonly intervalLength?: number;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
   @IsPositive()
-  readonly repeatCount: number;
+  readonly repeatCount?: number;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  readonly moneyIncomePlan: number;
+  readonly moneyIncomePlan?: number;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  readonly moneyOutcomePlan: number;
+  readonly moneyOutcomePlan?: number;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => Boolean(value))
   @IsBoolean()
-  readonly isFood: boolean;
+  readonly isFood?: boolean;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => String(value).trim())
   @IsString()
-  readonly recipe: string;
+  readonly recipe?: string;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Type(() => IngregientDto)
   @ValidateNested()
-  readonly ingredients: Ingregient[];
+  readonly ingredients?: IngregientDto[];
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Type(() => RepeatDaysIfYearDto)
   @ValidateNested()
-  readonly repeatDays: RepeatDayTaskWithNotYearInterval[];
+  readonly repeatDays?: RepeatDaysIfYearDto[];
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Type(() => RepeatDaysDto)
   @ValidateNested()
-  readonly repeatIfYearIntervalDays: RepeatDayTaskWithYearInterval[];
+  readonly repeatIfYearIntervalDays?: RepeatDaysDto[];
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Type(() => RepeatDayTaskCheckDto)
   @ValidateNested()
-  readonly taskRepeatDayCheck: RepeatDayTaskCheck[];
+  readonly taskRepeatDayCheck?: RepeatDayTaskCheckDto[];
 }

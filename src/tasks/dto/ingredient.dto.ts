@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNumber, IsPositive } from 'class-validator';
+import { IsNumber, IsOptional, IsPositive } from 'class-validator';
 
 export class IngregientDto {
   @ApiProperty()
@@ -16,14 +16,16 @@ export class IngregientDto {
   readonly productId: number;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
   @IsPositive()
-  readonly count: number;
+  readonly count?: number;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
   @IsPositive()
-  readonly measureUnitId: number;
+  readonly measureUnitId?: number;
 }

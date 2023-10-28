@@ -1,7 +1,6 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { WeekNumber } from '@prisma/client';
+import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNumber, IsPositive, IsString } from 'class-validator';
+import { IsNumber, IsPositive } from 'class-validator';
 
 export class RepeatDaysIfYearDto {
   @ApiProperty()
@@ -16,38 +15,21 @@ export class RepeatDaysIfYearDto {
   @IsPositive()
   readonly trackerId: number;
 
-  @ApiPropertyOptional()
+  @ApiProperty()
   @Transform(({ value }) => Number(value))
   @IsNumber()
   @IsPositive()
   readonly intervalPartIndex: number;
 
-  @ApiPropertyOptional()
+  @ApiProperty()
   @Transform(({ value }) => Number(value))
   @IsNumber()
   @IsPositive()
   readonly yearDateDay: number;
 
-  @ApiPropertyOptional()
+  @ApiProperty()
   @Transform(({ value }) => Number(value))
   @IsNumber()
   @IsPositive()
   readonly yearDateMonth: number;
-
-  @ApiPropertyOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  @IsPositive()
-  readonly monthNummber: number;
-
-  @ApiPropertyOptional()
-  @Transform(({ value }) => String(value).trim())
-  @IsString()
-  readonly weekNumber: WeekNumber;
-
-  @ApiPropertyOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  @IsPositive()
-  readonly weekDayNummber: number;
 }

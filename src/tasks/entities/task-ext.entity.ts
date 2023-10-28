@@ -1,16 +1,9 @@
 import { Prisma } from '@prisma/client';
+import { IngredientExtInclude } from './ingredient-ext.entity';
 
 export const TaskExtInclude: Prisma.TaskInclude = {
   ingredients: {
-    include: {
-      measureUnit: true,
-      product: {
-        include: {
-          type: true,
-          measureUnit: true,
-        },
-      },
-    },
+    include: IngredientExtInclude,
   },
   repeatDays: true,
   repeatIfYearIntervalDays: true,
