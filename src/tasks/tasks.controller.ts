@@ -1,16 +1,10 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Patch, Delete, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, Patch, Delete, UseGuards, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { DeleteTaskDto } from './dto/delete-task.dto';
-import { GetDayTasksDto } from './dto/get-day-tasks.dto';
-import { GetUserTrackersDto } from './dto/get-user-trackers.dto';
-import { SetTaskCheckDto } from './dto/set-task-check.dto';
-import { DeleteTaskInDateDto } from './dto/delete-task-in-date.dto';
-import { ResheduleTaskDto } from './dto/reshedule-task.dto';
-import { TaskProgressDto } from './dto/task-progress.dto';
+import { tasksType } from './entities/task-type.entity';
 
 @ApiTags('Пользователи')
 @Controller('api/tasks')
@@ -30,15 +24,15 @@ export class TasksController {
     return await this.tasksService.createTask(createTaskDto);
   }
   //ред задачу, изменить даты повтора
-  @Patch()
-  async updateTaskById(@Body() updateTaskDto: UpdateTaskDto) {
-    return await this.tasksService.updateTask(updateTaskDto);
+  @Patch(':id')
+  async updateTaskById(@Param('id') id: number, @Body() updateTaskDto: UpdateTaskDto) {
+    return await this.tasksService.updateTask(id, updateTaskDto);
   }
 
   //удалить трекер
-  @Delete()
-  async deleteTaskById(@Body() deleteTaskDto: DeleteTaskDto) {
-    return await this.tasksService.deleteTask(deleteTaskDto);
+  @Delete(':id')
+  async deleteTaskById(@Param('id') id: number) {
+    return await this.tasksService.deleteTask({ id });
   }
 
   //получение трекера с инф о повторах
@@ -51,37 +45,46 @@ export class TasksController {
 
   //получение трекеров по дню, типу
   @Get('dayTasks')
-  async getDayTasks(@Body() getDayTasksDto: GetDayTasksDto) {
-    const tasks = await this.tasksService.dayTasks(getDayTasksDto);
+  async getDayTasks(@Query('userId') userId: number, @Query('date') date: string, @Query('type') type: tasksType) {
+    const tasks = await this.tasksService.dayTasks(userId, date, type);
     return tasks;
   }
 
   //получение (кол-во, кол-во выполненных) по конкретному трекеру за период
   @Get(':id/progress')
-  async taskProgress(@Param('id') id: number, @Body() taskProgressDto: TaskProgressDto) {
-    return await this.taskProgress(id, taskProgressDto);
+  async taskProgress(
+    @Param('id') id: number,
+    @Query('dateStart') dateStart: string,
+    @Query('dateEnd') dateEnd: string,
+  ) {
+    return await this.tasksService.taskProgress(id, dateStart, dateEnd);
   }
 
   //получение списка всех трекеров пользователя
   @Get('userTasks')
-  async getUserTasks(@Body() getUserTrackersDto: GetUserTrackersDto) {
-    const tasks = await this.tasksService.userTrackers(getUserTrackersDto.userId);
+  async getUserTasks(@Query('userId') userId: number) {
+    const tasks = await this.tasksService.userTrackers(userId);
     return tasks;
   }
   //отметить трекер
-  @Get(':id/setTaskCheck')
-  async getSetTaskCheck(@Param('id') id: number, @Body() setTaskCheckDto: SetTaskCheckDto) {
-    return await this.getSetTaskCheck(id, setTaskCheckDto);
+  @Patch(':id/setTaskCheck')
+  async setTaskCheck(@Param('id') id: number, @Query('date') date: string) {
+    return await this.tasksService.setTaskCheck(id, date);
+  }
+  //отметить трекер
+  @Patch(':id/removeTaskCheck')
+  async removeTaskCheck(@Param('id') id: number, @Query('date') date: string) {
+    return await this.tasksService.removeTaskCheck(id, date);
   }
   //удалить трекер в дне
-  @Get(':id/deleteTaskInDate')
-  async deleteTaskInDate(@Param('id') id: number, @Body() deleteTaskInDateDto: DeleteTaskInDateDto) {
-    return await this.deleteTaskInDate(id, deleteTaskInDateDto);
+  @Delete(':id/deleteTaskInDate')
+  async deleteTaskInDate(@Param('id') id: number, @Query('date') date: string) {
+    return await this.tasksService.deleteTaskInDate(id, date);
   }
   //перенести трекер в дне
-  @Get(':id/resheduleTask')
-  async resheduleTask(@Param('id') id: number, @Body() resheduleTaskDto: ResheduleTaskDto) {
-    return await this.resheduleTask(id, resheduleTaskDto);
+  @Patch(':id/resheduleTask')
+  async resheduleTask(@Param('id') id: number, @Query('dateStart') date: string, @Query('dateEnd') newDate: string) {
+    return await this.tasksService.resheduleTask(id, date, newDate);
   }
 
   //остатки по месяцу (расх, дох, баланс по дням, остаток общ, инвест)

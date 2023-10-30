@@ -11,7 +11,6 @@ import {
 import { TaskExt, TaskExtInclude } from './entities/task-ext.entity';
 import 'multer';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { GetDayTasksDto } from './dto/get-day-tasks.dto';
 import { TaskShort } from './entities/task-short.entity';
 import { tasksType } from './entities/task-type.entity';
 import {
@@ -29,10 +28,6 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
-import { TaskProgressDto } from './dto/task-progress.dto';
-import { SetTaskCheckDto } from './dto/set-task-check.dto';
-import { DeleteTaskInDateDto } from './dto/delete-task-in-date.dto';
-import { ResheduleTaskDto } from './dto/reshedule-task.dto';
 
 @Injectable()
 export class TasksService {
@@ -428,9 +423,8 @@ export class TasksService {
     return false;
   }
 
-  async dayTasks(data: GetDayTasksDto): Promise<TaskExt[]> {
+  async dayTasks(userId: number, date: string, type: tasksType): Promise<TaskExt[]> {
     try {
-      const { date, type, userId } = data;
       let where: Prisma.TaskWhereInput | undefined;
 
       switch (type) {
@@ -761,11 +755,11 @@ export class TasksService {
     return this.prisma.task.create({ data, include: TaskExtInclude });
   }
 
-  async updateTask(data: UpdateTaskDto, where?: Prisma.TaskWhereUniqueInput): Promise<TaskExt> {
+  async updateTask(id: number, data: UpdateTaskDto, where?: Prisma.TaskWhereUniqueInput): Promise<TaskExt> {
     const updated = await this.prisma.task.update({
       where: {
         ...where,
-        id: data.id,
+        id: id,
       },
       data: {
         ...data,
@@ -819,7 +813,8 @@ export class TasksService {
 
   async taskProgress(
     id: number,
-    dto: TaskProgressDto,
+    dateStart: string,
+    dateEnd: string,
   ): Promise<
     {
       date: string;
@@ -827,8 +822,8 @@ export class TasksService {
       checked: boolean;
     }[]
   > {
-    let start = startOfDay(new Date(dto.dateStart));
-    const end = startOfDay(new Date(dto.dateEnd));
+    let start = startOfDay(new Date(dateStart));
+    const end = startOfDay(new Date(dateEnd));
 
     const res: {
       date: string;
@@ -846,50 +841,62 @@ export class TasksService {
     return res;
   }
 
-  async getSetTaskCheck(id: number, dto: SetTaskCheckDto): Promise<TaskExt | null> {
-    const info = await this.dayTask(id, dto.date);
+  async setTaskCheck(id: number, date: string): Promise<TaskExt | null> {
+    const info = await this.dayTask(id, date);
     if (!info) throw new BadRequestException();
 
-    const date = !info.taskRepeatDayCheck.length ? dto.date : info.taskRepeatDayCheck[0].date;
+    const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    return await this.updateTask({
-      id: id,
+    return await this.updateTask(id, {
       taskRepeatDayCheck: {
         trackerId: id,
-        date: date,
-        checked: dto.checked,
+        date: _date,
+        checked: true,
       },
     });
   }
 
-  async deleteTaskInDate(id: number, dto: DeleteTaskInDateDto): Promise<TaskExt> {
-    const info = await this.dayTask(id, dto.date);
+  async removeTaskCheck(id: number, date: string): Promise<TaskExt | null> {
+    const info = await this.dayTask(id, date);
     if (!info) throw new BadRequestException();
 
-    const date = !info.taskRepeatDayCheck.length ? dto.date : info.taskRepeatDayCheck[0].date;
+    const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    return await this.updateTask({
-      id: id,
+    return await this.updateTask(id, {
       taskRepeatDayCheck: {
         trackerId: id,
-        date: date,
+        date: _date,
+        checked: false,
+      },
+    });
+  }
+
+  async deleteTaskInDate(id: number, date: string): Promise<TaskExt> {
+    const info = await this.dayTask(id, date);
+    if (!info) throw new BadRequestException();
+
+    const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
+
+    return await this.updateTask(id, {
+      taskRepeatDayCheck: {
+        trackerId: id,
+        date: _date,
         isDeleted: true,
       },
     });
   }
 
-  async resheduleTask(id: number, dto: ResheduleTaskDto): Promise<TaskExt> {
-    const info = await this.dayTask(id, dto.date);
+  async resheduleTask(id: number, date: string, newDate: string): Promise<TaskExt> {
+    const info = await this.dayTask(id, date);
     if (!info) throw new BadRequestException();
 
-    const date = !info.taskRepeatDayCheck.length ? dto.date : info.taskRepeatDayCheck[0].date;
+    const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    return await this.updateTask({
-      id: id,
+    return await this.updateTask(id, {
       taskRepeatDayCheck: {
         trackerId: id,
-        date: date,
-        newDate: dto.newDate,
+        date: _date,
+        newDate: newDate,
       },
     });
   }

@@ -1,10 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IntervalType,
-  RepeatDayTaskCheck,
-  RepeatDayTaskWithNotYearInterval,
-  RepeatDayTaskWithYearInterval,
-} from '@prisma/client';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IntervalType } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import { IsBoolean, IsNumber, IsOptional, IsPositive, IsString, ValidateNested } from 'class-validator';
 import { IngregientDto } from './ingredient.dto';
@@ -13,12 +8,6 @@ import { RepeatDaysDto } from './repeat-days.dto';
 import { RepeatDaysIfYearDto } from './repeat-days-if-year.dto';
 
 export class UpdateTaskDto {
-  @ApiProperty()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  @IsPositive()
-  readonly id: number;
-
   @ApiPropertyOptional()
   @IsOptional()
   @Transform(({ value }) => String(value).trim())
