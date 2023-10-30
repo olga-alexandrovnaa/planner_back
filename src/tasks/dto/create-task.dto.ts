@@ -14,12 +14,6 @@ import { RepeatDaysIfYearDto } from './repeat-days-if-year.dto';
 
 export class CreateTaskDto {
   @ApiProperty()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  @IsPositive()
-  readonly userId: number;
-
-  @ApiProperty()
   @Transform(({ value }) => String(value).trim())
   @IsString()
   readonly date: string;

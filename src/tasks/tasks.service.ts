@@ -28,6 +28,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
+import { ListTask } from './entities/list-task.entity';
 
 @Injectable()
 export class TasksService {
@@ -423,7 +424,7 @@ export class TasksService {
     return false;
   }
 
-  async dayTasks(userId: number, date: string, type: tasksType): Promise<TaskExt[]> {
+  async dayTasks(userId: number, date: string, type: tasksType): Promise<ListTask[]> {
     try {
       let where: Prisma.TaskWhereInput | undefined;
 
@@ -521,7 +522,25 @@ export class TasksService {
       if (type !== tasksType.notTrackers) {
         trackers = await this.userTrackersExt(date, userId, where);
       } else {
-        return result;
+        return result.map((e) => ({
+          id: e.id,
+          name: e.name,
+          checked: e.taskRepeatDayCheck.length ? e.taskRepeatDayCheck[0].checked : false,
+          deadline: e.taskRepeatDayCheck.length ? e.taskRepeatDayCheck[0].deadline : null,
+          intervalLength: e.intervalLength,
+          intervalPart: e.intervalPart,
+          isFood: e.isFood,
+          isTracker: e.isTracker,
+          moneyIncome:
+            e.taskRepeatDayCheck.length && e.taskRepeatDayCheck[0].moneyIncomeFact
+              ? e.taskRepeatDayCheck[0].moneyIncomeFact
+              : e.moneyIncomePlan,
+          moneyOutcome:
+            e.taskRepeatDayCheck.length && e.taskRepeatDayCheck[0].moneyOutcomeFact
+              ? e.taskRepeatDayCheck[0].moneyOutcomeFact
+              : e.moneyOutcomePlan,
+          repeatCount: e.repeatCount,
+        }));
       }
 
       //расчет какие сегодня должны отобразиться
@@ -583,7 +602,25 @@ export class TasksService {
         }
       });
 
-      return result;
+      return result.map((e) => ({
+        id: e.id,
+        name: e.name,
+        checked: e.taskRepeatDayCheck.length ? e.taskRepeatDayCheck[0].checked : false,
+        deadline: e.taskRepeatDayCheck.length ? e.taskRepeatDayCheck[0].deadline : null,
+        intervalLength: e.intervalLength,
+        intervalPart: e.intervalPart,
+        isFood: e.isFood,
+        isTracker: e.isTracker,
+        moneyIncome:
+          e.taskRepeatDayCheck.length && e.taskRepeatDayCheck[0].moneyIncomeFact
+            ? e.taskRepeatDayCheck[0].moneyIncomeFact
+            : e.moneyIncomePlan,
+        moneyOutcome:
+          e.taskRepeatDayCheck.length && e.taskRepeatDayCheck[0].moneyOutcomeFact
+            ? e.taskRepeatDayCheck[0].moneyOutcomeFact
+            : e.moneyOutcomePlan,
+        repeatCount: e.repeatCount,
+      }));
     } catch {
       throw new BadRequestException();
     }
@@ -841,63 +878,68 @@ export class TasksService {
     return res;
   }
 
-  async setTaskCheck(id: number, date: string): Promise<TaskExt | null> {
+  async setTaskCheck(id: number, date: string): Promise<boolean> {
     const info = await this.dayTask(id, date);
     if (!info) throw new BadRequestException();
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    return await this.updateTask(id, {
+    const updated = await this.updateTask(id, {
       taskRepeatDayCheck: {
         trackerId: id,
         date: _date,
         checked: true,
       },
     });
+
+    return !!updated;
   }
 
-  async removeTaskCheck(id: number, date: string): Promise<TaskExt | null> {
+  async removeTaskCheck(id: number, date: string): Promise<boolean> {
     const info = await this.dayTask(id, date);
     if (!info) throw new BadRequestException();
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    return await this.updateTask(id, {
+    const updated = await this.updateTask(id, {
       taskRepeatDayCheck: {
         trackerId: id,
         date: _date,
         checked: false,
       },
     });
+    return !!updated;
   }
 
-  async deleteTaskInDate(id: number, date: string): Promise<TaskExt> {
+  async deleteTaskInDate(id: number, date: string): Promise<boolean> {
     const info = await this.dayTask(id, date);
     if (!info) throw new BadRequestException();
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    return await this.updateTask(id, {
+    const updated = await this.updateTask(id, {
       taskRepeatDayCheck: {
         trackerId: id,
         date: _date,
         isDeleted: true,
       },
     });
+    return !!updated;
   }
 
-  async resheduleTask(id: number, date: string, newDate: string): Promise<TaskExt> {
+  async resheduleTask(id: number, date: string, newDate: string): Promise<boolean> {
     const info = await this.dayTask(id, date);
     if (!info) throw new BadRequestException();
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    return await this.updateTask(id, {
+    const updated = await this.updateTask(id, {
       taskRepeatDayCheck: {
         trackerId: id,
         date: _date,
         newDate: newDate,
       },
     });
+    return !!updated;
   }
 }

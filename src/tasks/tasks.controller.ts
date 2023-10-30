@@ -1,10 +1,23 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Patch, Delete, UseGuards, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Patch,
+  Delete,
+  UseGuards,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { tasksType } from './entities/task-type.entity';
+import { RequestExt } from '../auth/entities/request-ext.entity';
 
 @ApiTags('Пользователи')
 @Controller('api/tasks')
@@ -20,8 +33,8 @@ export class TasksController {
 
   //создать
   @Post()
-  async createTaskById(@Body() createTaskDto: CreateTaskDto) {
-    return await this.tasksService.createTask(createTaskDto);
+  async createTaskById(@Req() req: RequestExt, @Body() createTaskDto: CreateTaskDto) {
+    return await this.tasksService.createTask({ ...createTaskDto, userId: req.user.id });
   }
   //ред задачу, изменить даты повтора
   @Patch(':id')
@@ -45,8 +58,8 @@ export class TasksController {
 
   //получение трекеров по дню, типу
   @Get('dayTasks')
-  async getDayTasks(@Query('userId') userId: number, @Query('date') date: string, @Query('type') type: tasksType) {
-    const tasks = await this.tasksService.dayTasks(userId, date, type);
+  async getDayTasks(@Req() req: RequestExt, @Query('date') date: string, @Query('type') type: tasksType) {
+    const tasks = await this.tasksService.dayTasks(req.user.id, date, type);
     return tasks;
   }
 
@@ -62,8 +75,8 @@ export class TasksController {
 
   //получение списка всех трекеров пользователя
   @Get('userTasks')
-  async getUserTasks(@Query('userId') userId: number) {
-    const tasks = await this.tasksService.userTrackers(userId);
+  async getUserTasks(@Req() req: RequestExt) {
+    const tasks = await this.tasksService.userTrackers(req.user.id);
     return tasks;
   }
   //отметить трекер
