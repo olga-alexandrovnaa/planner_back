@@ -20,8 +20,8 @@ import { tasksType } from './entities/task-type.entity';
 import { RequestExt } from '../auth/entities/request-ext.entity';
 
 @ApiTags('Пользователи')
-@Controller('api/tasks')
-@UseGuards(AuthGuard)
+@Controller('tasks')
+//@UseGuards(AuthGuard)
 
 // @ApiOperation({
 //   summary: 'Получение должности',
@@ -32,23 +32,35 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   //создать
+  //@UseGuards(AuthGuard)
   @Post()
   async createTaskById(@Req() req: RequestExt, @Body() createTaskDto: CreateTaskDto) {
     return await this.tasksService.createTask({ ...createTaskDto, userId: req.user.id });
   }
   //ред задачу, изменить даты повтора
+  //@UseGuards(AuthGuard)
   @Patch(':id')
   async updateTaskById(@Param('id') id: number, @Body() updateTaskDto: UpdateTaskDto) {
     return await this.tasksService.updateTask(id, updateTaskDto);
   }
 
   //удалить трекер
+  //@UseGuards(AuthGuard)
   @Delete(':id')
   async deleteTaskById(@Param('id') id: number) {
     return await this.tasksService.deleteTask({ id });
   }
 
+  //получение трекеров по дню, типу
+  //@UseGuards(AuthGuard)
+  @Get('dayTasks')
+  async getDayTasks(@Req() req: RequestExt, @Query('date') date: string, @Query('type') type: tasksType) {
+    const tasks = await this.tasksService.dayTasks(req.user.id, date, type);
+    return tasks;
+  }
+
   //получение трекера с инф о повторах
+  //@UseGuards(AuthGuard)
   @Get(':id')
   async getTaskById(@Param('id') id: number) {
     const task = await this.tasksService.taskExt({ id });
@@ -56,14 +68,9 @@ export class TasksController {
     return task;
   }
 
-  //получение трекеров по дню, типу
-  @Get('dayTasks')
-  async getDayTasks(@Req() req: RequestExt, @Query('date') date: string, @Query('type') type: tasksType) {
-    const tasks = await this.tasksService.dayTasks(req.user.id, date, type);
-    return tasks;
-  }
 
   //получение (кол-во, кол-во выполненных) по конкретному трекеру за период
+  //@UseGuards(AuthGuard)
   @Get(':id/progress')
   async taskProgress(
     @Param('id') id: number,
@@ -74,27 +81,32 @@ export class TasksController {
   }
 
   //получение списка всех трекеров пользователя
+  //@UseGuards(AuthGuard)
   @Get('userTasks')
   async getUserTasks(@Req() req: RequestExt) {
     const tasks = await this.tasksService.userTrackers(req.user.id);
     return tasks;
   }
   //отметить трекер
+  //@UseGuards(AuthGuard)
   @Patch(':id/setTaskCheck')
   async setTaskCheck(@Param('id') id: number, @Query('date') date: string) {
     return await this.tasksService.setTaskCheck(id, date);
   }
   //отметить трекер
+  //@UseGuards(AuthGuard)
   @Patch(':id/removeTaskCheck')
   async removeTaskCheck(@Param('id') id: number, @Query('date') date: string) {
     return await this.tasksService.removeTaskCheck(id, date);
   }
   //удалить трекер в дне
+  //@UseGuards(AuthGuard)
   @Delete(':id/deleteTaskInDate')
   async deleteTaskInDate(@Param('id') id: number, @Query('date') date: string) {
     return await this.tasksService.deleteTaskInDate(id, date);
   }
   //перенести трекер в дне
+  //@UseGuards(AuthGuard)
   @Patch(':id/resheduleTask')
   async resheduleTask(@Param('id') id: number, @Query('dateStart') date: string, @Query('dateEnd') newDate: string) {
     return await this.tasksService.resheduleTask(id, date, newDate);

@@ -29,10 +29,11 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { ListTask } from './entities/list-task.entity';
+import { CreateTaskDto } from './dto/create-task.dto';
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async task(taskWhereUniqueInput: Prisma.TaskWhereUniqueInput): Promise<Task | null> {
     try {
@@ -605,18 +606,18 @@ export class TasksService {
       return result.map((e) => ({
         id: e.id,
         name: e.name,
-        checked: e.taskRepeatDayCheck.length ? e.taskRepeatDayCheck[0].checked : false,
-        deadline: e.taskRepeatDayCheck.length ? e.taskRepeatDayCheck[0].deadline : null,
+        checked: e.taskRepeatDayCheck?.length ? e.taskRepeatDayCheck[0].checked : false,
+        deadline: e.taskRepeatDayCheck?.length ? e.taskRepeatDayCheck[0].deadline : null,
         intervalLength: e.intervalLength,
         intervalPart: e.intervalPart,
         isFood: e.isFood,
         isTracker: e.isTracker,
         moneyIncome:
-          e.taskRepeatDayCheck.length && e.taskRepeatDayCheck[0].moneyIncomeFact
+          e.taskRepeatDayCheck?.length && e.taskRepeatDayCheck[0].moneyIncomeFact
             ? e.taskRepeatDayCheck[0].moneyIncomeFact
             : e.moneyIncomePlan,
         moneyOutcome:
-          e.taskRepeatDayCheck.length && e.taskRepeatDayCheck[0].moneyOutcomeFact
+          e.taskRepeatDayCheck?.length && e.taskRepeatDayCheck[0].moneyOutcomeFact
             ? e.taskRepeatDayCheck[0].moneyOutcomeFact
             : e.moneyOutcomePlan,
         repeatCount: e.repeatCount,
@@ -788,11 +789,44 @@ export class TasksService {
     }
   }
 
-  async createTask(data: Prisma.TaskCreateManyInput): Promise<TaskExt> {
-    return this.prisma.task.create({ data, include: TaskExtInclude });
+  async createTask(data: CreateTaskDto): Promise<TaskExt> {
+    const task = await this.prisma.task.create({
+      data: {
+        ...data,
+        ingredients: undefined,
+        repeatDays: undefined,
+        repeatIfYearIntervalDays: undefined,
+        taskRepeatDayCheck: undefined,
+      }, include: TaskExtInclude
+    });
+
+    if (task) {
+      return await this.updateTask(task.id, {
+        ...data,
+        ingredients: data.ingredients ? data.ingredients.map((e) => ({ ...e, trackerId: task.id })) : undefined,
+        repeatDays: data.repeatDays ? data.repeatDays.map((e) => ({ ...e, trackerId: task.id })) : undefined,
+        repeatIfYearIntervalDays: data.repeatIfYearIntervalDays ? data.repeatIfYearIntervalDays.map((e) => ({ ...e, trackerId: task.id })) : undefined,
+        taskRepeatDayCheck: data.taskRepeatDayCheck ? data.taskRepeatDayCheck.map((e) => ({ ...e, trackerId: task.id })) : undefined,
+      });
+    } else {
+      return task;
+    }
   }
 
   async updateTask(id: number, data: UpdateTaskDto, where?: Prisma.TaskWhereUniqueInput): Promise<TaskExt> {
+    if (data.taskRepeatDayCheck?.length) {
+      await this.prisma.repeatDayTaskCheck.upsert({
+        create: data.taskRepeatDayCheck[0],
+        update: data.taskRepeatDayCheck[0],
+        where: {
+          trackerId_date: {
+            date: data.taskRepeatDayCheck[0].date,
+            trackerId: data.taskRepeatDayCheck[0].trackerId,
+          },
+        },
+      })
+    }
+
     const updated = await this.prisma.task.update({
       where: {
         ...where,
@@ -802,34 +836,22 @@ export class TasksService {
         ...data,
         ingredients: data.ingredients
           ? {
-              set: data.ingredients.map((e) => ({
-                ...e,
-                trackerId_productId: {
-                  productId: e.productId,
-                  trackerId: e.trackerId,
-                },
-              })),
-            }
+            set: data.ingredients.map((e) => ({
+              ...e,
+              trackerId_productId: {
+                productId: e.productId,
+                trackerId: e.trackerId,
+              },
+            })),
+          }
           : undefined,
         repeatDays: data.repeatDays ? { set: data.repeatDays } : undefined,
         repeatIfYearIntervalDays: data.repeatIfYearIntervalDays
           ? {
-              set: data.repeatIfYearIntervalDays,
-            }
+            set: data.repeatIfYearIntervalDays,
+          }
           : undefined,
-        taskRepeatDayCheck: data.taskRepeatDayCheck
-          ? {
-              connectOrCreate: {
-                create: data.taskRepeatDayCheck,
-                where: {
-                  trackerId_date: {
-                    date: data.taskRepeatDayCheck.date,
-                    trackerId: data.taskRepeatDayCheck.trackerId,
-                  },
-                },
-              },
-            }
-          : undefined,
+        taskRepeatDayCheck: undefined,
       },
       include: TaskExtInclude,
     });
@@ -885,11 +907,11 @@ export class TasksService {
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
     const updated = await this.updateTask(id, {
-      taskRepeatDayCheck: {
+      taskRepeatDayCheck: [{
         trackerId: id,
         date: _date,
         checked: true,
-      },
+      }],
     });
 
     return !!updated;
@@ -902,11 +924,11 @@ export class TasksService {
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
     const updated = await this.updateTask(id, {
-      taskRepeatDayCheck: {
+      taskRepeatDayCheck: [{
         trackerId: id,
         date: _date,
         checked: false,
-      },
+      }],
     });
     return !!updated;
   }
@@ -918,11 +940,11 @@ export class TasksService {
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
     const updated = await this.updateTask(id, {
-      taskRepeatDayCheck: {
+      taskRepeatDayCheck: [{
         trackerId: id,
         date: _date,
         isDeleted: true,
-      },
+      }],
     });
     return !!updated;
   }
@@ -934,11 +956,11 @@ export class TasksService {
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
     const updated = await this.updateTask(id, {
-      taskRepeatDayCheck: {
+      taskRepeatDayCheck: [{
         trackerId: id,
         date: _date,
         newDate: newDate,
-      },
+      }],
     });
     return !!updated;
   }

@@ -18,6 +18,13 @@ export class CreateTaskDto {
   @IsString()
   readonly date: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  @IsNumber()
+  
+  readonly userId: number;
+
   @ApiProperty()
   @Transform(({ value }) => String(value).trim())
   @IsString()
@@ -39,14 +46,14 @@ export class CreateTaskDto {
   @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  @IsPositive()
+  
   readonly intervalLength?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  @IsPositive()
+  
   readonly repeatCount?: number;
 
   @ApiPropertyOptional()

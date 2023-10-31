@@ -7,27 +7,27 @@ export class RepeatDaysDto {
   @ApiProperty()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  @IsPositive()
+  
   readonly id: number;
 
   @ApiProperty()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  @IsPositive()
+  
   readonly trackerId: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  @IsPositive()
+  
   readonly intervalPartIndex?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  @IsPositive()
+  
   readonly dayFromBeginningInterval?: number;
 
   @ApiPropertyOptional()
@@ -40,6 +40,6 @@ export class RepeatDaysDto {
   @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  @IsPositive()
+  
   readonly weekDayNumber?: number;
 }

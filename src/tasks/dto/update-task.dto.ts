@@ -30,14 +30,14 @@ export class UpdateTaskDto {
   @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  @IsPositive()
+  
   readonly intervalLength?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  @IsPositive()
+  
   readonly repeatCount?: number;
 
   @ApiPropertyOptional()
@@ -86,5 +86,5 @@ export class UpdateTaskDto {
   @IsOptional()
   @Type(() => RepeatDayTaskCheckDto)
   @ValidateNested()
-  readonly taskRepeatDayCheck?: RepeatDayTaskCheckDto;
+  readonly taskRepeatDayCheck?: RepeatDayTaskCheckDto[];
 }

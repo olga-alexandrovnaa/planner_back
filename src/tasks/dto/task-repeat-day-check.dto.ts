@@ -6,7 +6,7 @@ export class RepeatDayTaskCheckDto {
   @ApiProperty()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  @IsPositive()
+  
   readonly trackerId: number;
 
   @ApiProperty()
