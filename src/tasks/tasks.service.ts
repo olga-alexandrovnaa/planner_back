@@ -10,7 +10,6 @@ import {
 } from '@prisma/client';
 import { TaskExt, TaskExtInclude } from './entities/task-ext.entity';
 import 'multer';
-import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskShort } from './entities/task-short.entity';
 import { tasksType } from './entities/task-type.entity';
 import {
@@ -19,7 +18,6 @@ import {
   addYears,
   differenceInCalendarDays,
   endOfMonth,
-  endOfYear,
   getDay,
   getISOWeeksInYear,
   getWeek,
@@ -27,28 +25,81 @@ import {
   startOfDay,
   startOfMonth,
   startOfWeek,
+  startOfYear,
 } from 'date-fns';
 import { ListTask } from './entities/list-task.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async task(taskWhereUniqueInput: Prisma.TaskWhereUniqueInput): Promise<Task | null> {
     try {
-      return await this.prisma.task.findUnique({ where: taskWhereUniqueInput });
+      return this.prisma.task.findUnique({ where: taskWhereUniqueInput });
     } catch {
       throw new BadRequestException();
     }
   }
 
-  async taskExt(taskWhereUniqueInput: Prisma.TaskWhereUniqueInput): Promise<TaskExt | null> {
+  async tasksExt(where: Prisma.TaskWhereInput): Promise<TaskExt[]> {
+    let checkWhere: Prisma.RepeatDayTaskCheckWhereInput = {
+      date: '',
+    };
+
+    if (where.date) {
+      checkWhere = {
+        OR: [
+          {
+            date: String(where.date),
+            newDate: null,
+          },
+          {
+            newDate: String(where.date),
+          },
+        ],
+      };
+    }
+
     try {
-      return await this.prisma.task.findUnique({
-        where: taskWhereUniqueInput,
-        include: TaskExtInclude,
+      const data = await this.prisma.task.findMany({
+        where: where,
+        include: {
+          ...TaskExtInclude,
+          taskRepeatDayCheck: {
+            where: checkWhere,
+          },
+        },
       });
+      return data;
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async taskExt(id: number, date: string): Promise<TaskExt | null> {
+    try {
+      const data = await this.prisma.task.findUnique({
+        where: { id: id },
+        include: {
+          ...TaskExtInclude,
+          taskRepeatDayCheck: {
+            where: {
+              OR: [
+                {
+                  date: date,
+                  newDate: null,
+                },
+                {
+                  newDate: date,
+                },
+              ],
+            },
+          },
+        },
+      });
+      return data;
     } catch {
       throw new BadRequestException();
     }
@@ -177,7 +228,7 @@ export class TasksService {
       return false;
     }
 
-    if (repeatCount && addDays(start, intervalLength * repeatCount) < main) {
+    if (repeatCount && addDays(start, intervalLength * repeatCount) <= main) {
       return false;
     }
 
@@ -203,7 +254,7 @@ export class TasksService {
     }
 
     //если последнее воскресенье < main
-    if (repeatCount && addDays(addDays(startOfWeek(start), 7), 7 * intervalLength * repeatCount) < main) {
+    if (repeatCount && addDays(addDays(startOfWeek(start), 7), 7 * intervalLength * repeatCount) <= main) {
       return false;
     }
 
@@ -239,14 +290,16 @@ export class TasksService {
     const main = new Date(date);
     const start = new Date(dateStart);
 
-    const shedule = repeatDays.filter((e) => e.intervalPartIndex !== null && e.dayFromBeginningInterval !== null);
+    const shedule = repeatDays.filter(
+      (e) => e.intervalPartIndex !== null && (e.dayFromBeginningInterval !== null || e.weekNumber !== null),
+    );
 
     if (main < start || !shedule.length) {
       return false;
     }
 
     //если последней день последнего месяца < main
-    if (repeatCount && addMonths(endOfMonth(start), intervalLength * repeatCount) < main) {
+    if (repeatCount && addMonths(startOfMonth(start), intervalLength * repeatCount) <= main) {
       return false;
     }
 
@@ -254,8 +307,12 @@ export class TasksService {
     const mainEnd = endOfMonth(main);
 
     const createStart = startOfMonth(start);
-    const yearDif = mainStart.getFullYear() - createStart.getFullYear();
-    const monthDif = mainStart.getMonth() - createStart.getMonth();
+    let yearDif = mainStart.getFullYear() - createStart.getFullYear();
+    let monthDif = mainStart.getMonth() - createStart.getMonth();
+    if (monthDif < 0) {
+      monthDif = 12 + monthDif;
+      yearDif = yearDif - 1;
+    }
     //количество месяцев прошедших с начала до даты % длина интервала + 1
     const index = ((monthDif * (yearDif + 1)) % intervalLength) + 1;
     const s = shedule.filter((e) => e.intervalPartIndex === index);
@@ -271,7 +328,7 @@ export class TasksService {
       const arr = sheduleWithDates.map((e) => e.dayFromBeginningInterval);
       if (arr.includes(monthDay)) return true;
 
-      if (main.getDate() === 28 && main.getMonth() === 1 && !(main.getFullYear() % 4)) {
+      if (main.getDate() === 28 && main.getMonth() === 1 && main.getFullYear() % 4 !== 0) {
         if (
           sheduleWithDates.find(
             (e) =>
@@ -325,7 +382,7 @@ export class TasksService {
     const dif = weekOfMain - weekOfMonthStart;
 
     let type: WeekNumber;
-    if (weekDayOfMonthStartWithMondayStart > weekDay) {
+    if (weekDayOfMonthStartWithMondayStart >= weekDayWithMondayStart) {
       if (dif === 1) {
         //первая
         type = WeekNumber.first;
@@ -348,8 +405,8 @@ export class TasksService {
         type = WeekNumber.third;
       }
     }
-    if (dif > 3) {
-      if (weekDay > weekDayOfMonthEndWithMondayStart) {
+    if (dif >= 3) {
+      if (weekDayWithMondayStart >= weekDayOfMonthEndWithMondayStart) {
         if (weeksCount - 2 === dif) {
           //последняя
           type = WeekNumber.last;
@@ -387,7 +444,7 @@ export class TasksService {
     }
 
     //если последняя дата последнего года < main
-    if (repeatCount && addYears(endOfYear(start), repeatCount * intervalLength) < main) {
+    if (repeatCount && addYears(startOfYear(start), repeatCount * intervalLength) <= main) {
       return false;
     }
 
@@ -400,7 +457,7 @@ export class TasksService {
 
     if (res) return true;
 
-    if (main.getDate() === 28 && main.getMonth() === 1 && !(main.getFullYear() % 4)) {
+    if (main.getDate() === 28 && main.getMonth() === 1 && main.getFullYear() % 4 !== 0) {
       if (
         !!s.find(
           (e) =>
@@ -508,13 +565,12 @@ export class TasksService {
       let result: TaskExt[] = [];
 
       if (type !== tasksType.trackers) {
-        result = await this.prisma.task.findMany({
-          where: {
-            isTracker: false,
-            date: date,
-            ...where,
-          },
-          include: TaskExtInclude,
+        result = await this.tasksExt({
+          userId: userId,
+          isTracker: false,
+          isDeleted: false,
+          date: date,
+          ...where,
         });
       }
       //получить все трекеры
@@ -599,6 +655,9 @@ export class TasksService {
             }
             break;
           default:
+            // if (tracker.date === date) {
+            //   result.push(tracker);
+            // }
             break;
         }
       });
@@ -715,6 +774,14 @@ export class TasksService {
     try {
       const result: TaskExt[] = [];
 
+      const task = await this.taskExt(trackerId, date);
+
+      if (!task) return null;
+
+      if (!task.isTracker) {
+        return task;
+      }
+
       const where: Prisma.TaskWhereInput = {
         id: trackerId,
       };
@@ -723,6 +790,15 @@ export class TasksService {
 
       //расчет какие сегодня должны отобразиться
       trackers.forEach((tracker) => {
+        // if (
+        //   tracker.date === date &&
+        //   (!tracker.taskRepeatDayCheck ||
+        //     (tracker.taskRepeatDayCheck.length && !tracker.taskRepeatDayCheck[0].isDeleted))
+        // ) {
+        //   result.push(tracker);
+        //   return;
+        // }
+
         switch (tracker.intervalPart) {
           case 'Day':
             if (
@@ -789,74 +865,210 @@ export class TasksService {
     }
   }
 
-  async createTask(data: CreateTaskDto): Promise<TaskExt> {
-    const task = await this.prisma.task.create({
-      data: {
-        ...data,
+  async createTask(userId: number, createTaskDto: CreateTaskDto): Promise<TaskExt | null> {
+    try {
+      const createdDto: Prisma.TaskCreateInput = {
+        ...createTaskDto,
+        user: { connect: { id: userId } },
         ingredients: undefined,
         repeatDays: undefined,
         repeatIfYearIntervalDays: undefined,
         taskRepeatDayCheck: undefined,
-      }, include: TaskExtInclude
-    });
+      };
 
-    if (task) {
-      return await this.updateTask(task.id, {
-        ...data,
-        ingredients: data.ingredients ? data.ingredients.map((e) => ({ ...e, trackerId: task.id })) : undefined,
-        repeatDays: data.repeatDays ? data.repeatDays.map((e) => ({ ...e, trackerId: task.id })) : undefined,
-        repeatIfYearIntervalDays: data.repeatIfYearIntervalDays ? data.repeatIfYearIntervalDays.map((e) => ({ ...e, trackerId: task.id })) : undefined,
-        taskRepeatDayCheck: data.taskRepeatDayCheck ? data.taskRepeatDayCheck.map((e) => ({ ...e, trackerId: task.id })) : undefined,
+      const created = await this.createTaskMainFields(createdDto);
+
+      const promiseArr: Promise<any>[] = [];
+
+      if (created && createTaskDto.ingredients?.length) {
+        promiseArr.push(
+          this.updateTaskIngredients(
+            created.id,
+            createTaskDto.ingredients.map((e) => ({ ...e, trackerId: created.id, id: undefined })),
+          ),
+        );
+      }
+
+      if (created && createTaskDto.repeatDays?.length) {
+        promiseArr.push(
+          this.updateTaskRepeatDays(
+            created.id,
+            createTaskDto.repeatDays.map((e) => ({ ...e, trackerId: created.id, id: undefined })),
+          ),
+        );
+      }
+
+      if (created && createTaskDto.repeatIfYearIntervalDays?.length) {
+        promiseArr.push(
+          this.updateTaskRepeatYearDays(
+            created.id,
+            createTaskDto.repeatIfYearIntervalDays.map((e) => ({ ...e, trackerId: created.id, id: undefined })),
+          ),
+        );
+      }
+
+      if (created && createTaskDto.taskRepeatDayCheck?.length) {
+        promiseArr.push(
+          this.updateTaskRepeatDayCheck(created.id, {
+            ...createTaskDto.taskRepeatDayCheck[0],
+            trackerId: created.id,
+            id: undefined,
+          }),
+        );
+      }
+
+      return Promise.all(promiseArr).then(async () => {
+        return await this.taskExt(created.id, created.date);
       });
-    } else {
-      return task;
+    } catch {
+      throw new BadRequestException();
     }
   }
 
-  async updateTask(id: number, data: UpdateTaskDto, where?: Prisma.TaskWhereUniqueInput): Promise<TaskExt> {
-    if (data.taskRepeatDayCheck?.length) {
-      await this.prisma.repeatDayTaskCheck.upsert({
-        create: data.taskRepeatDayCheck[0],
-        update: data.taskRepeatDayCheck[0],
-        where: {
-          trackerId_date: {
-            date: data.taskRepeatDayCheck[0].date,
-            trackerId: data.taskRepeatDayCheck[0].trackerId,
-          },
-        },
-      })
+  async updateTask(id: number, updateTaskDto: UpdateTaskDto): Promise<TaskExt | null> {
+    try {
+      const promiseArr: Promise<any>[] = [];
+
+      if (updateTaskDto.ingredients?.length) {
+        promiseArr.push(
+          this.updateTaskIngredients(
+            id,
+            updateTaskDto.ingredients.map((e) => ({ ...e, id: undefined })),
+          ),
+        );
+      }
+
+      if (updateTaskDto.repeatDays?.length) {
+        promiseArr.push(
+          this.updateTaskRepeatDays(
+            id,
+            updateTaskDto.repeatDays.map((e) => ({ ...e, id: undefined })),
+          ),
+        );
+      }
+
+      if (updateTaskDto.repeatIfYearIntervalDays?.length) {
+        promiseArr.push(
+          this.updateTaskRepeatYearDays(
+            id,
+            updateTaskDto.repeatIfYearIntervalDays.map((e) => ({ ...e, id: undefined })),
+          ),
+        );
+      }
+
+      if (updateTaskDto.taskRepeatDayCheck?.length) {
+        promiseArr.push(this.updateTaskRepeatDayCheck(id, { ...updateTaskDto.taskRepeatDayCheck[0], id: undefined }));
+      }
+
+      return Promise.all(promiseArr).then(async () => {
+        const updatedDto: Prisma.TaskUpdateInput = {
+          ...updateTaskDto,
+          ingredients: undefined,
+          repeatDays: undefined,
+          repeatIfYearIntervalDays: undefined,
+          taskRepeatDayCheck: undefined,
+        };
+
+        const updated = await this.updateTaskMainFields(id, updatedDto);
+        return await this.taskExt(updated.id, updated.date);
+      });
+    } catch {
+      throw new BadRequestException();
     }
+  }
 
-    const updated = await this.prisma.task.update({
-      where: {
-        ...where,
-        id: id,
-      },
-      data: {
-        ...data,
-        ingredients: data.ingredients
-          ? {
-            set: data.ingredients.map((e) => ({
-              ...e,
-              trackerId_productId: {
-                productId: e.productId,
-                trackerId: e.trackerId,
-              },
-            })),
-          }
-          : undefined,
-        repeatDays: data.repeatDays ? { set: data.repeatDays } : undefined,
-        repeatIfYearIntervalDays: data.repeatIfYearIntervalDays
-          ? {
-            set: data.repeatIfYearIntervalDays,
-          }
-          : undefined,
-        taskRepeatDayCheck: undefined,
-      },
-      include: TaskExtInclude,
-    });
+  async createTaskMainFields(data: Prisma.TaskCreateInput): Promise<Task> {
+    try {
+      return await this.prisma.task.create({
+        data: {
+          ...data,
+        },
+      });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
 
-    return updated;
+  async updateTaskMainFields(id: number, data: Prisma.TaskUpdateInput): Promise<Task> {
+    try {
+      return this.prisma.task.update({
+        data: {
+          ...data,
+        },
+        where: {
+          id: id,
+        },
+      });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async updateTaskRepeatDays(id: number, data: Prisma.RepeatDayTaskWithNotYearIntervalCreateManyInput[]) {
+    try {
+      await this.prisma.repeatDayTaskWithNotYearInterval.deleteMany({
+        where: {
+          trackerId: id,
+        },
+      });
+
+      await this.prisma.repeatDayTaskWithNotYearInterval.createMany({
+        data: data,
+      });
+    } catch (err) {
+      console.log(err);
+
+      throw new BadRequestException();
+    }
+  }
+
+  async updateTaskRepeatYearDays(id: number, data: Prisma.RepeatDayTaskWithYearIntervalCreateManyInput[]) {
+    try {
+      await this.prisma.repeatDayTaskWithYearInterval.deleteMany({
+        where: {
+          trackerId: id,
+        },
+      });
+
+      await this.prisma.repeatDayTaskWithYearInterval.createMany({
+        data: data,
+      });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async updateTaskIngredients(id: number, data: Prisma.IngredientCreateManyInput[]) {
+    try {
+      await this.prisma.ingredient.deleteMany({
+        where: {
+          trackerId: id,
+        },
+      });
+
+      await this.prisma.ingredient.createMany({
+        data: data,
+      });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async updateTaskRepeatDayCheck(id: number, data: Prisma.RepeatDayTaskCheckCreateManyInput) {
+    try {
+      await this.prisma.repeatDayTaskCheck.deleteMany({
+        where: {
+          trackerId: id,
+          date: data.date,
+        },
+      });
+
+      await this.prisma.repeatDayTaskCheck.createMany({
+        data: data,
+      });
+    } catch {
+      throw new BadRequestException();
+    }
   }
 
   async deleteTask(where: Prisma.TaskWhereUniqueInput): Promise<boolean> {
@@ -906,15 +1118,13 @@ export class TasksService {
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    const updated = await this.updateTask(id, {
-      taskRepeatDayCheck: [{
-        trackerId: id,
-        date: _date,
-        checked: true,
-      }],
+    await this.updateTaskRepeatDayCheck(id, {
+      trackerId: id,
+      date: _date,
+      checked: true,
     });
 
-    return !!updated;
+    return true;
   }
 
   async removeTaskCheck(id: number, date: string): Promise<boolean> {
@@ -923,14 +1133,13 @@ export class TasksService {
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    const updated = await this.updateTask(id, {
-      taskRepeatDayCheck: [{
-        trackerId: id,
-        date: _date,
-        checked: false,
-      }],
+    await this.updateTaskRepeatDayCheck(id, {
+      trackerId: id,
+      date: _date,
+      checked: false,
     });
-    return !!updated;
+
+    return true;
   }
 
   async deleteTaskInDate(id: number, date: string): Promise<boolean> {
@@ -939,14 +1148,12 @@ export class TasksService {
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    const updated = await this.updateTask(id, {
-      taskRepeatDayCheck: [{
-        trackerId: id,
-        date: _date,
-        isDeleted: true,
-      }],
+    await this.updateTaskRepeatDayCheck(id, {
+      trackerId: id,
+      date: _date,
+      isDeleted: true,
     });
-    return !!updated;
+    return true;
   }
 
   async resheduleTask(id: number, date: string, newDate: string): Promise<boolean> {
@@ -955,13 +1162,11 @@ export class TasksService {
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    const updated = await this.updateTask(id, {
-      taskRepeatDayCheck: [{
-        trackerId: id,
-        date: _date,
-        newDate: newDate,
-      }],
+    await this.updateTaskRepeatDayCheck(id, {
+      trackerId: id,
+      date: _date,
+      newDate: newDate,
     });
-    return !!updated;
+    return true;
   }
 }

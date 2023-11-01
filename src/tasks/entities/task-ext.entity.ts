@@ -7,6 +7,7 @@ export const TaskExtInclude: Prisma.TaskInclude = {
   },
   repeatDays: true,
   repeatIfYearIntervalDays: true,
+  taskRepeatDayCheck: true,
 };
 
 const extended = Prisma.validator<Prisma.TaskArgs>()({

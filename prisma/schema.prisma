@@ -59,8 +59,9 @@ enum MoveTypeIfDayNotExists {
 model Task {
   id Int @id @default(autoincrement())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
   updatedAt DateTime @updatedAt @db.Timestamptz()
 
   date        String

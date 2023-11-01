@@ -21,7 +21,7 @@ import { RequestExt } from '../auth/entities/request-ext.entity';
 
 @ApiTags('Пользователи')
 @Controller('tasks')
-//@UseGuards(AuthGuard)
+@UseGuards(AuthGuard)
 
 // @ApiOperation({
 //   summary: 'Получение должности',
@@ -35,13 +35,13 @@ export class TasksController {
   //@UseGuards(AuthGuard)
   @Post()
   async createTaskById(@Req() req: RequestExt, @Body() createTaskDto: CreateTaskDto) {
-    return await this.tasksService.createTask({ ...createTaskDto, userId: req.user.id });
+    return { data: await this.tasksService.createTask(req.user.id, createTaskDto) };
   }
   //ред задачу, изменить даты повтора
   //@UseGuards(AuthGuard)
   @Patch(':id')
   async updateTaskById(@Param('id') id: number, @Body() updateTaskDto: UpdateTaskDto) {
-    return await this.tasksService.updateTask(id, updateTaskDto);
+    return { data: await this.tasksService.updateTask(id, updateTaskDto) };
   }
 
   //удалить трекер
@@ -54,20 +54,41 @@ export class TasksController {
   //получение трекеров по дню, типу
   //@UseGuards(AuthGuard)
   @Get('dayTasks')
-  async getDayTasks(@Req() req: RequestExt, @Query('date') date: string, @Query('type') type: tasksType) {
-    const tasks = await this.tasksService.dayTasks(req.user.id, date, type);
-    return tasks;
+  async getDayTasks(@Req() req: RequestExt, @Query('date') date: string, @Query('type') type: string) {
+    if (type in tasksType) {
+      const tasks = await this.tasksService.dayTasks(req.user.id, date, tasksType[type]);
+      return tasks;
+    }
+    return [];
   }
 
-  //получение трекера с инф о повторах
+  //получение трекера с инф о повторах и выполнению в день
   //@UseGuards(AuthGuard)
   @Get(':id')
-  async getTaskById(@Param('id') id: number) {
-    const task = await this.tasksService.taskExt({ id });
+  async getTaskById(@Param('id') id: number, @Query('date') date: string) {
+    let task = await this.tasksService.taskExt(id, date);
+    if (task && !task.taskRepeatDayCheck.length) {
+      task = {
+        ...task,
+        taskRepeatDayCheck: [
+          {
+            id: 0,
+            checked: false,
+            date: task.date,
+            deadline: null,
+            isDeleted: false,
+            moneyIncomeFact: null,
+            moneyOutcomeFact: null,
+            newDate: null,
+            note: '',
+            trackerId: task.id,
+          },
+        ],
+      };
+    }
     if (!task) throw new NotFoundException();
-    return task;
+    return { data: task };
   }
-
 
   //получение (кол-во, кол-во выполненных) по конкретному трекеру за период
   //@UseGuards(AuthGuard)

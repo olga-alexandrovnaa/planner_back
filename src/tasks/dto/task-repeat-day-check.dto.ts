@@ -1,12 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsStringOrNull } from '../../decorators/IsStringOrNull.decorator';
+import { IsNumberOrNull } from '../../decorators/IsNumberOrNull.decorator';
 
 export class RepeatDayTaskCheckDto {
   @ApiProperty()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  
   readonly trackerId: number;
 
   @ApiProperty()
@@ -16,9 +17,9 @@ export class RepeatDayTaskCheckDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => String(value).trim())
-  @IsString()
-  readonly newDate?: string;
+  @Transform(({ value }) => (value ? String(value).trim() : null))
+  @IsStringOrNull()
+  readonly newDate?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -28,27 +29,25 @@ export class RepeatDayTaskCheckDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => String(value).trim())
-  @IsString()
-  readonly note?: string;
+  @Transform(({ value }) => (value ? String(value).trim() : null))
+  @IsStringOrNull()
+  readonly note?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
+  @IsNumberOrNull()
   readonly moneyIncomeFact?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
+  @IsNumberOrNull()
   readonly moneyOutcomeFact?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => String(value).trim())
-  @IsString()
-  readonly deadline?: string;
+  @Transform(({ value }) => (value ? String(value).trim() : null))
+  @IsStringOrNull()
+  readonly deadline?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

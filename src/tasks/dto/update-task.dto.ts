@@ -1,11 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IntervalType } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsNumber, IsOptional, IsPositive, IsString, ValidateNested } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { IngregientDto } from './ingredient.dto';
 import { RepeatDayTaskCheckDto } from './task-repeat-day-check.dto';
 import { RepeatDaysDto } from './repeat-days.dto';
 import { RepeatDaysIfYearDto } from './repeat-days-if-year.dto';
+import { IsStringOrNull } from '../../decorators/IsStringOrNull.decorator';
+import { IsNumberOrNull } from '../../decorators/IsNumberOrNull.decorator';
 
 export class UpdateTaskDto {
   @ApiPropertyOptional()
@@ -22,34 +24,28 @@ export class UpdateTaskDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => String(value).trim())
-  @IsString()
+  @Transform(({ value }) => (value ? String(value).trim() : null))
+  @IsStringOrNull()
   readonly intervalPart?: IntervalType;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  
+  @IsNumberOrNull()
   readonly intervalLength?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  
+  @IsNumberOrNull()
   readonly repeatCount?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
+  @IsNumberOrNull()
   readonly moneyIncomePlan?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
+  @IsNumberOrNull()
   readonly moneyOutcomePlan?: number;
 
   @ApiPropertyOptional()
@@ -60,9 +56,9 @@ export class UpdateTaskDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => String(value).trim())
-  @IsString()
-  readonly recipe?: string;
+  @Transform(({ value }) => (value ? String(value).trim() : null))
+  @IsStringOrNull()
+  readonly recipe?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -74,13 +70,13 @@ export class UpdateTaskDto {
   @IsOptional()
   @Type(() => RepeatDaysIfYearDto)
   @ValidateNested()
-  readonly repeatDays?: RepeatDaysIfYearDto[];
+  readonly repeatIfYearIntervalDays?: RepeatDaysIfYearDto[];
 
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => RepeatDaysDto)
   @ValidateNested()
-  readonly repeatIfYearIntervalDays?: RepeatDaysDto[];
+  readonly repeatDays?: RepeatDaysDto[];
 
   @ApiPropertyOptional()
   @IsOptional()
