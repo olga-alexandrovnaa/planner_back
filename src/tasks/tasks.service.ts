@@ -33,7 +33,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async task(taskWhereUniqueInput: Prisma.TaskWhereUniqueInput): Promise<Task | null> {
     try {
@@ -1145,6 +1145,11 @@ export class TasksService {
   async deleteTaskInDate(id: number, date: string): Promise<boolean> {
     const info = await this.dayTask(id, date);
     if (!info) throw new BadRequestException();
+
+    if (!info.isTracker) {
+      await this.deleteTask({ id });
+      return true;
+    }
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
