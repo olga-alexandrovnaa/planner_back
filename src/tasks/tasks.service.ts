@@ -268,7 +268,7 @@ export class TasksService {
     const weekDay = getDay(main);
     const weekDayWithMondayStart = weekDay === 0 ? 6 : weekDay - 1;
 
-    return s.map((e) => e.dayFromBeginningInterval).includes(weekDayWithMondayStart);
+    return s.map((e) => e.dayFromBeginningInterval).includes(weekDayWithMondayStart + 1);
   }
 
   getYearWeekNumber = (date = new Date()) => {
@@ -1082,6 +1082,23 @@ export class TasksService {
     return true;
   }
 
+  isoString (date: Date = new Date()): string {
+    const tzo = date.getTimezoneOffset();
+    const dif = tzo >= 0 ? '+' : '-';
+    const pad = function (num: number) {
+        return (num < 10 ? '0' : '') + num;
+    };
+
+    return date.getFullYear() +
+        '-' + pad(date.getMonth() + 1) +
+        '-' + pad(date.getDate()) +
+        'T' + pad(date.getHours()) +
+        ':' + pad(date.getMinutes()) +
+        ':' + pad(date.getSeconds()) +
+        dif + pad(Math.floor(Math.abs(tzo) / 60)) +
+        ':' + pad(Math.abs(tzo) % 60);
+}
+
   async taskProgress(
     id: number,
     dateStart: string,
@@ -1104,8 +1121,8 @@ export class TasksService {
 
     while (start <= end) {
       res.push({
-        date: start.toISOString(),
-        ...(await this.dayTrackerPlanAndCheckInfo(id, start.toISOString())),
+        date: this.isoString(start),
+        ...(await this.dayTrackerPlanAndCheckInfo(id, this.isoString(start))),
       });
       start = addDays(start, 1);
     }
@@ -1118,11 +1135,17 @@ export class TasksService {
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    await this.updateTaskRepeatDayCheck(id, {
-      trackerId: id,
-      date: _date,
-      checked: true,
-    });
+    await this.prisma.repeatDayTaskCheck.update({
+      where: {
+        trackerId_date: {
+          trackerId: id,
+          date: _date,
+        },
+      },
+      data: {
+        checked: true,
+      }
+    })
 
     return true;
   }
@@ -1133,11 +1156,17 @@ export class TasksService {
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    await this.updateTaskRepeatDayCheck(id, {
-      trackerId: id,
-      date: _date,
-      checked: false,
-    });
+    await this.prisma.repeatDayTaskCheck.update({
+      where: {
+        trackerId_date: {
+          trackerId: id,
+          date: _date,
+        },
+      },
+      data: {
+        checked: false,
+      }
+    })
 
     return true;
   }
@@ -1153,11 +1182,17 @@ export class TasksService {
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    await this.updateTaskRepeatDayCheck(id, {
-      trackerId: id,
-      date: _date,
-      isDeleted: true,
-    });
+    await this.prisma.repeatDayTaskCheck.update({
+      where: {
+        trackerId_date: {
+          trackerId: id,
+          date: _date,
+        },
+      },
+      data: {
+        isDeleted: true,
+      }
+    })
     return true;
   }
 
@@ -1167,11 +1202,17 @@ export class TasksService {
 
     const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    await this.updateTaskRepeatDayCheck(id, {
-      trackerId: id,
-      date: _date,
-      newDate: newDate,
-    });
+    await this.prisma.repeatDayTaskCheck.update({
+      where: {
+        trackerId_date: {
+          trackerId: id,
+          date: _date,
+        },
+      },
+      data: {
+        newDate: newDate,
+      }
+    })
     return true;
   }
 }
