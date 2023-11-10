@@ -29,7 +29,7 @@ import { RequestExt } from '../auth/entities/request-ext.entity';
 // })
 // @ApiResponse({ status: 200, type: Object })
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(private readonly tasksService: TasksService) { }
 
   //создать
   //@UseGuards(AuthGuard)
@@ -98,15 +98,17 @@ export class TasksController {
     @Query('dateStart') dateStart: string,
     @Query('dateEnd') dateEnd: string,
   ) {
-    return await this.tasksService.taskProgress(id, dateStart, dateEnd);
+    return {
+      data: await this.tasksService.taskProgress(id, dateStart, dateEnd),
+    };
   }
 
   //получение списка всех трекеров пользователя
   //@UseGuards(AuthGuard)
-  @Get('userTasks')
-  async getUserTasks(@Req() req: RequestExt) {
+  @Get('userTrackers')
+  async getUserTrackers(@Req() req: RequestExt) {
     const tasks = await this.tasksService.userTrackers(req.user.id);
-    return tasks;
+    return { data: tasks };
   }
   //отметить трекер
   //@UseGuards(AuthGuard)
