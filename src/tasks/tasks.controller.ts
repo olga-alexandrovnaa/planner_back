@@ -136,18 +136,35 @@ export class TasksController {
   }
 
   //остатки по месяцу (расх, дох, баланс по дням, остаток общ, инвест)
-  //ред ост месяца
-  //ред инв месяца
-  //инвест по типам по месяцу (созд ред уд)
-  //все типы инвест
-  //создать, ред, уд. инвестиц тип
-  //продукты с уже добавленными ингрид за период
-  //получ, создать, ред, уд типы продуктов, продукты
-  //получ, созд, ред, отметка покупки
-  //получ, созд, ред, уд заметки по дню
-  //получ, созд, ред, уд заметки
-  //получ, созд, ред, уд праздники
-}
+  @Get('month_wallet_info')
+  async monthWalletInfo(
+    @Req() req: RequestExt,
+    @Query('dateStart') dateStart: string,
+    @Query('dateEnd') dateEnd: string,
+  ) {
+    return {
+      data: await this.tasksService.monthWalletInfo(dateStart, dateEnd, req.user.id),
+    }
+  }
 
-// @Put(':id/setPermissions') //Patch,Delete,Post
-// async setPermissionsById(@Param('id') id: number, @Body() dto: SetPermissionsDto) {
+  //ред ост, инв месяца
+  @Post('month_wallet_info')
+  async editMonthMoneyInfo(
+    @Req() req: RequestExt,
+    @Query('date') date: string,
+    @Query('remainder') remainder: number,
+    @Query('investment') investment: number
+  ) {
+    return await this.tasksService.editMonthMoneyInfo(req.user.id, date, remainder, investment);
+  }
+
+
+//инвест по типам по месяцу (созд ред уд)
+//все типы инвест
+//создать, ред, уд. инвестиц тип
+//продукты с уже добавленными ингрид за период
+//получ, создать, ред, уд типы продуктов, продукты
+//получ, созд, ред, отметка покупки
+//получ, созд, ред, уд заметки по дню
+//получ, созд, ред, уд заметки
+//получ, созд, ред, уд праздники

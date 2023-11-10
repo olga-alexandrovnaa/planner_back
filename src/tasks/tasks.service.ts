@@ -770,6 +770,103 @@ export class TasksService {
     }
   }
 
+  async dayTrackerMoneyInfo(date: string): Promise<{
+    income: number;
+    outcome: number;
+  }> {
+    try {
+      const result: TaskExt[] = [];
+
+      const trackers = await this.userTrackersExt(date, undefined);
+
+      //расчет какие сегодня должны отобразиться
+      trackers.forEach((tracker) => {
+        switch (tracker.intervalPart) {
+          case 'Day':
+            if (
+              this.isDayIntervalTrackerShowedInDate(
+                date,
+                tracker.date,
+                tracker.intervalLength ?? 1,
+                tracker.repeatCount ?? undefined,
+              )
+            ) {
+              result.push(tracker);
+            }
+            break;
+          case 'Week':
+            if (
+              this.isWeekIntervalTrackerShowedInDate(
+                date,
+                tracker.date,
+                tracker.intervalLength ?? 1,
+                tracker.repeatDays,
+                tracker.repeatCount ?? undefined,
+              )
+            ) {
+              result.push(tracker);
+            }
+            break;
+          case 'Month':
+            if (
+              this.isMonthIntervalTrackerShowedInDate(
+                date,
+                tracker.date,
+                tracker.intervalLength ?? 1,
+                tracker.repeatDays,
+                tracker.repeatCount ?? undefined,
+              )
+            ) {
+              result.push(tracker);
+            }
+            break;
+          case 'Year':
+            if (
+              this.isYearIntervalTrackerShowedInDate(
+                date,
+                tracker.date,
+                tracker.intervalLength ?? 1,
+                tracker.repeatIfYearIntervalDays,
+                tracker.repeatCount ?? undefined,
+              )
+            ) {
+              result.push(tracker);
+            }
+            break;
+          default:
+            break;
+        }
+      });
+
+      if (result.length) {
+        let income = 0;
+        let outcome = 0;
+        for (const iterator of result) {
+          if (!!iterator.taskRepeatDayCheck.length && iterator.taskRepeatDayCheck[0].moneyIncomeFact) {
+            income += iterator.taskRepeatDayCheck[0].moneyIncomeFact;
+          } else if (iterator.moneyIncomePlan) {
+            income += iterator.moneyIncomePlan;
+          }
+
+          if (!!iterator.taskRepeatDayCheck.length && iterator.taskRepeatDayCheck[0].moneyOutcomeFact) {
+            outcome += iterator.taskRepeatDayCheck[0].moneyOutcomeFact;
+          } else if (iterator.moneyOutcomePlan) {
+            outcome += iterator.moneyOutcomePlan;
+          }
+        }
+        return {
+          income,
+          outcome,
+        };
+      }
+      return {
+        income: 0,
+        outcome: 0,
+      };
+    } catch {
+      throw new BadRequestException();
+    }
+  }
   async dayTask(trackerId: number, date: string): Promise<TaskExt | null> {
     try {
       const result: TaskExt[] = [];
@@ -1082,22 +1179,31 @@ export class TasksService {
     return true;
   }
 
-  isoString (date: Date = new Date()): string {
+  isoString(date: Date = new Date()): string {
     const tzo = date.getTimezoneOffset();
     const dif = tzo >= 0 ? '+' : '-';
     const pad = function (num: number) {
-        return (num < 10 ? '0' : '') + num;
+      return (num < 10 ? '0' : '') + num;
     };
 
-    return date.getFullYear() +
-        '-' + pad(date.getMonth() + 1) +
-        '-' + pad(date.getDate()) +
-        'T' + pad(date.getHours()) +
-        ':' + pad(date.getMinutes()) +
-        ':' + pad(date.getSeconds()) +
-        dif + pad(Math.floor(Math.abs(tzo) / 60)) +
-        ':' + pad(Math.abs(tzo) % 60);
-}
+    return (
+      date.getFullYear() +
+      '-' +
+      pad(date.getMonth() + 1) +
+      '-' +
+      pad(date.getDate()) +
+      'T' +
+      pad(date.getHours()) +
+      ':' +
+      pad(date.getMinutes()) +
+      ':' +
+      pad(date.getSeconds()) +
+      dif +
+      pad(Math.floor(Math.abs(tzo) / 60)) +
+      ':' +
+      pad(Math.abs(tzo) % 60)
+    );
+  }
 
   async taskProgress(
     id: number,
@@ -1126,6 +1232,102 @@ export class TasksService {
       });
       start = addDays(start, 1);
     }
+    return res;
+  }
+
+  async editMonthMoneyInfo(userId: number, date: string, remainder: number, investment: number) {
+    await this.prisma.monthMoneyInfo.upsert({
+      create: {
+        date,
+        investment,
+        remainder,
+        userId,
+      },
+      update: {
+        date,
+        investment,
+        remainder,
+        userId,
+      },
+      where: {
+        date: date,
+      },
+    });
+    return true;
+  }
+
+  async monthWalletInfo(
+    dateStart: string,
+    dateEnd: string,
+    userId: number,
+  ): Promise<{
+    startRemainder: number;
+    investSum: number;
+    endRemainder: number;
+    days: {
+      date: string;
+      income: number;
+      outcome: number;
+      remainder: number;
+    }[];
+  }> {
+    let start = startOfDay(new Date(dateStart));
+    const end = startOfDay(new Date(dateEnd));
+    let remainder = 0;
+    let investment = 0;
+
+    const monthMoneyInfo = await this.prisma.monthMoneyInfo.findFirst({
+      where: {
+        userId: userId,
+        date: this.isoString(start),
+      },
+    });
+
+    if (monthMoneyInfo) {
+      remainder = monthMoneyInfo.remainder;
+      investment = monthMoneyInfo.investment;
+    }
+
+    let endRemainder = remainder;
+
+    const res: {
+      startRemainder: number;
+      investSum: number;
+      endRemainder: number;
+      days: {
+        date: string;
+        income: number;
+        outcome: number;
+        remainder: number;
+      }[];
+    } = {
+      startRemainder: remainder,
+      investSum: investment,
+      endRemainder: 0,
+      days: [],
+    };
+
+    while (start <= end) {
+      const d = this.isoString(start);
+      const info = await this.dayTrackerMoneyInfo(this.isoString(start));
+
+      endRemainder += info.income;
+      endRemainder -= info.outcome;
+
+      res.days.push({
+        date: d,
+        income: info.income,
+        outcome: info.outcome,
+        remainder: endRemainder,
+      });
+
+      start = addDays(start, 1);
+    }
+
+    endRemainder -= investment;
+
+    res.endRemainder = endRemainder;
+
     return res;
   }
 
