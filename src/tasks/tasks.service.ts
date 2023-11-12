@@ -1197,11 +1197,12 @@ export class TasksService {
       ':' +
       pad(date.getMinutes()) +
       ':' +
-      pad(date.getSeconds()) +
-      dif +
-      pad(Math.floor(Math.abs(tzo) / 60)) +
-      ':' +
-      pad(Math.abs(tzo) % 60)
+      pad(date.getSeconds())
+      // +
+      // dif +
+      // pad(Math.floor(Math.abs(tzo) / 60)) +
+      // ':' +
+      // pad(Math.abs(tzo) % 60)
     );
   }
 
@@ -1332,45 +1333,54 @@ export class TasksService {
   }
 
   async setTaskCheck(id: number, date: string): Promise<boolean> {
-    const info = await this.dayTask(id, date);
-    if (!info) throw new BadRequestException();
+    try {
+      const info = await this.dayTask(id, date);
+      if (!info) throw new BadRequestException();
 
-    const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
+      const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    await this.prisma.repeatDayTaskCheck.update({
-      where: {
-        trackerId_date: {
-          trackerId: id,
-          date: _date,
+      await this.prisma.repeatDayTaskCheck.update({
+        where: {
+          trackerId_date: {
+            trackerId: id,
+            date: _date,
+          },
         },
-      },
-      data: {
-        checked: true,
-      }
-    })
+        data: {
+          checked: true,
+        }
+      })
 
-    return true;
+      return true;
+    } catch {
+      throw new BadRequestException();
+    }
+
   }
 
   async removeTaskCheck(id: number, date: string): Promise<boolean> {
-    const info = await this.dayTask(id, date);
-    if (!info) throw new BadRequestException();
+    try {
+      const info = await this.dayTask(id, date);
+      if (!info) throw new BadRequestException();
 
-    const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
+      const _date = !info.taskRepeatDayCheck.length ? date : info.taskRepeatDayCheck[0].date;
 
-    await this.prisma.repeatDayTaskCheck.update({
-      where: {
-        trackerId_date: {
-          trackerId: id,
-          date: _date,
+      await this.prisma.repeatDayTaskCheck.update({
+        where: {
+          trackerId_date: {
+            trackerId: id,
+            date: _date,
+          },
         },
-      },
-      data: {
-        checked: false,
-      }
-    })
+        data: {
+          checked: false,
+        }
+      })
 
-    return true;
+      return true;
+    } catch {
+      throw new BadRequestException();
+    }
   }
 
   async deleteTaskInDate(id: number, date: string): Promise<boolean> {
