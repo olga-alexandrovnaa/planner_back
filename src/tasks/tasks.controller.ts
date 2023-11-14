@@ -62,6 +62,37 @@ export class TasksController {
     return [];
   }
 
+  //получение списка всех трекеров пользователя
+  //@UseGuards(AuthGuard)
+  @Get('userTrackers')
+  async getUserTrackers(@Req() req: RequestExt) {
+    const tasks = await this.tasksService.userTrackers(req.user.id);
+    return { data: tasks };
+  }
+
+   //остатки по месяцу (расх, дох, баланс по дням, остаток общ, инвест)
+   @Get('month_wallet_info')
+   async monthWalletInfo(
+     @Req() req: RequestExt,
+     @Query('dateStart') dateStart: string,
+     @Query('dateEnd') dateEnd: string,
+   ) {
+     return {
+       data: await this.tasksService.monthWalletInfo(dateStart, dateEnd, req.user.id),
+     }
+   }
+ 
+   //ред ост, инв месяца
+   @Post('month_wallet_info')
+   async editMonthMoneyInfo(
+     @Req() req: RequestExt,
+     @Query('date') date: string,
+     @Query('remainder') remainder: number,
+     @Query('investment') investment: number
+   ) {
+     return await this.tasksService.editMonthMoneyInfo(req.user.id, date, remainder, investment);
+   }
+
   //получение трекера с инф о повторах и выполнению в день
   //@UseGuards(AuthGuard)
   @Get(':id')
@@ -103,13 +134,7 @@ export class TasksController {
     };
   }
 
-  //получение списка всех трекеров пользователя
-  //@UseGuards(AuthGuard)
-  @Get('userTrackers')
-  async getUserTrackers(@Req() req: RequestExt) {
-    const tasks = await this.tasksService.userTrackers(req.user.id);
-    return { data: tasks };
-  }
+  
   //отметить трекер
   //@UseGuards(AuthGuard)
   @Patch(':id/setTaskCheck')
@@ -135,28 +160,7 @@ export class TasksController {
     return await this.tasksService.resheduleTask(id, date, newDate);
   }
 
-  //остатки по месяцу (расх, дох, баланс по дням, остаток общ, инвест)
-  @Get('month_wallet_info')
-  async monthWalletInfo(
-    @Req() req: RequestExt,
-    @Query('dateStart') dateStart: string,
-    @Query('dateEnd') dateEnd: string,
-  ) {
-    return {
-      data: await this.tasksService.monthWalletInfo(dateStart, dateEnd, req.user.id),
-    }
-  }
-
-  //ред ост, инв месяца
-  @Post('month_wallet_info')
-  async editMonthMoneyInfo(
-    @Req() req: RequestExt,
-    @Query('date') date: string,
-    @Query('remainder') remainder: number,
-    @Query('investment') investment: number
-  ) {
-    return await this.tasksService.editMonthMoneyInfo(req.user.id, date, remainder, investment);
-  }
+ 
 
 
 //инвест по типам по месяцу (созд ред уд)
@@ -168,3 +172,4 @@ export class TasksController {
 //получ, созд, ред, уд заметки по дню
 //получ, созд, ред, уд заметки
 //получ, созд, ред, уд праздники
+}
