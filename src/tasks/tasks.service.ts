@@ -18,6 +18,7 @@ import {
   addYears,
   differenceInCalendarDays,
   endOfMonth,
+  format,
   getDay,
   getISOWeeksInYear,
   getWeek,
@@ -1179,31 +1180,31 @@ export class TasksService {
     return true;
   }
 
-  isoString(date: Date = new Date()): string {
-    const tzo = date.getTimezoneOffset();
-    const dif = tzo >= 0 ? '+' : '-';
-    const pad = function (num: number) {
-      return (num < 10 ? '0' : '') + num;
-    };
+  // isoString(date: Date = new Date()): string {
+  //   const tzo = date.getTimezoneOffset();
+  //   const dif = tzo >= 0 ? '+' : '-';
+  //   const pad = function (num: number) {
+  //     return (num < 10 ? '0' : '') + num;
+  //   };
 
-    return (
-      date.getFullYear() +
-      '-' +
-      pad(date.getMonth() + 1) +
-      '-' +
-      pad(date.getDate()) +
-      'T' +
-      pad(date.getHours()) +
-      ':' +
-      pad(date.getMinutes()) +
-      ':' +
-      pad(date.getSeconds()) +
-      dif +
-      pad(Math.floor(Math.abs(tzo) / 60)) +
-      ':' +
-      pad(Math.abs(tzo) % 60)
-    );
-  }
+  //   return (
+  //     date.getFullYear() +
+  //     '-' +
+  //     pad(date.getMonth() + 1) +
+  //     '-' +
+  //     pad(date.getDate())
+  //     // 'T' +
+  //     // pad(date.getHours()) +
+  //     // ':' +
+  //     // pad(date.getMinutes()) +
+  //     // ':' +
+  //     // pad(date.getSeconds()) +
+  //     // dif +
+  //     // pad(Math.floor(Math.abs(tzo) / 60)) +
+  //     // ':' +
+  //     // pad(Math.abs(tzo) % 60)
+  //   );
+  // }
 
   async taskProgress(
     id: number,
@@ -1227,8 +1228,8 @@ export class TasksService {
 
     while (start <= end) {
       res.push({
-        date: this.isoString(start),
-        ...(await this.dayTrackerPlanAndCheckInfo(id, this.isoString(start))),
+        date: format(start, 'yyyy-MM-dd'),
+        ...(await this.dayTrackerPlanAndCheckInfo(id, format(start, 'yyyy-MM-dd'))),
       });
       start = addDays(start, 1);
     }
@@ -1279,7 +1280,7 @@ export class TasksService {
     const monthMoneyInfo = await this.prisma.monthMoneyInfo.findFirst({
       where: {
         userId: userId,
-        date: this.isoString(start),
+        date: format(start, 'yyyy-MM-dd'),
       },
     });
 
@@ -1308,8 +1309,8 @@ export class TasksService {
     };
 
     while (start <= end) {
-      const d = this.isoString(start);
-      const info = await this.dayTrackerMoneyInfo(this.isoString(start));
+      const d = format(start, 'yyyy-MM-dd');
+      const info = await this.dayTrackerMoneyInfo(format(start, 'yyyy-MM-dd'));
 
       endRemainder += info.income;
       endRemainder -= info.outcome;
@@ -1346,8 +1347,8 @@ export class TasksService {
       },
       data: {
         checked: true,
-      }
-    })
+      },
+    });
 
     return true;
   }
@@ -1367,8 +1368,8 @@ export class TasksService {
       },
       data: {
         checked: false,
-      }
-    })
+      },
+    });
 
     return true;
   }
@@ -1393,8 +1394,8 @@ export class TasksService {
       },
       data: {
         isDeleted: true,
-      }
-    })
+      },
+    });
     return true;
   }
 
@@ -1413,8 +1414,8 @@ export class TasksService {
       },
       data: {
         newDate: newDate,
-      }
-    })
+      },
+    });
     return true;
   }
 }
