@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import {
   MoveTypeIfDayNotExists,
   Prisma,
+  RepeatDayTaskCheck,
   RepeatDayTaskWithNotYearInterval,
   RepeatDayTaskWithYearInterval,
   Task,
@@ -17,6 +18,7 @@ import {
   addMonths,
   addYears,
   differenceInCalendarDays,
+  endOfDay,
   endOfMonth,
   format,
   getDay,
@@ -131,6 +133,7 @@ export class TasksService {
 
       const taskShort: TaskShort[] = tasks.map((e) => ({
         ...e,
+        name: e.name ?? '',
         isMoney:
           !!e.moneyIncomePlan ||
           !!e.moneyOutcomePlan ||
@@ -154,13 +157,14 @@ export class TasksService {
             {
               userId: userId,
               isTracker: true,
+              isFood: false,
             },
             {
               OR: [
                 {
                   isDeleted: true,
                   deletedAt: {
-                    gte: new Date(date),
+                    gt: endOfDay(new Date(date)),
                   },
                 },
                 {
@@ -197,7 +201,7 @@ export class TasksService {
               OR: [
                 {
                   date: date,
-                  newDate: null,
+                  // newDate: null,
                 },
                 {
                   newDate: date,
@@ -216,8 +220,21 @@ export class TasksService {
     date: string,
     dateStart: string,
     intervalLength: number,
-    repeatCount?: number,
+    repeatCount: number | undefined,
+    taskRepeatDayCheck: RepeatDayTaskCheck[],
   ): boolean {
+    const movedInfo = taskRepeatDayCheck.find((e) => e.date === date);
+
+    if (movedInfo && movedInfo.newDate !== null && movedInfo.newDate !== date) {
+      return false;
+    }
+
+    const movedFromInfo = taskRepeatDayCheck.find((e) => e.newDate === date);
+
+    if (movedFromInfo) {
+      date = movedFromInfo.date;
+    }
+
     const main = new Date(date);
     const start = new Date(dateStart);
 
@@ -243,8 +260,21 @@ export class TasksService {
     dateStart: string,
     intervalLength: number,
     repeatDays: RepeatDayTaskWithNotYearInterval[],
-    repeatCount?: number,
+    repeatCount: number | undefined,
+    taskRepeatDayCheck: RepeatDayTaskCheck[],
   ): boolean {
+    const movedInfo = taskRepeatDayCheck.find((e) => e.date === date);
+
+    if (movedInfo && movedInfo.newDate !== null && movedInfo.newDate !== date) {
+      return false;
+    }
+
+    const movedFromInfo = taskRepeatDayCheck.find((e) => e.newDate === date);
+
+    if (movedFromInfo) {
+      date = movedFromInfo.date;
+    }
+
     const main = new Date(date);
     const start = new Date(dateStart);
 
@@ -286,8 +316,21 @@ export class TasksService {
     dateStart: string,
     intervalLength: number,
     repeatDays: RepeatDayTaskWithNotYearInterval[],
-    repeatCount?: number,
+    repeatCount: number | undefined,
+    taskRepeatDayCheck: RepeatDayTaskCheck[],
   ): boolean {
+    const movedInfo = taskRepeatDayCheck.find((e) => e.date === date);
+
+    if (movedInfo && movedInfo.newDate !== null && movedInfo.newDate !== date) {
+      return false;
+    }
+
+    const movedFromInfo = taskRepeatDayCheck.find((e) => e.newDate === date);
+
+    if (movedFromInfo) {
+      date = movedFromInfo.date;
+    }
+
     const main = new Date(date);
     const start = new Date(dateStart);
 
@@ -431,8 +474,21 @@ export class TasksService {
     dateStart: string,
     intervalLength: number,
     repeatDays: RepeatDayTaskWithYearInterval[],
-    repeatCount?: number,
+    repeatCount: number | undefined,
+    taskRepeatDayCheck: RepeatDayTaskCheck[],
   ): boolean {
+    const movedInfo = taskRepeatDayCheck.find((e) => e.date === date);
+
+    if (movedInfo && movedInfo.newDate !== null && movedInfo.newDate !== date) {
+      return false;
+    }
+
+    const movedFromInfo = taskRepeatDayCheck.find((e) => e.newDate === date);
+
+    if (movedFromInfo) {
+      date = movedFromInfo.date;
+    }
+
     const main = new Date(date);
     const start = new Date(dateStart);
 
@@ -582,7 +638,7 @@ export class TasksService {
       } else {
         return result.map((e) => ({
           id: e.id,
-          name: e.name,
+          name: e.name ?? '',
           checked: e.taskRepeatDayCheck.length ? e.taskRepeatDayCheck[0].checked : false,
           deadline: e.taskRepeatDayCheck.length ? e.taskRepeatDayCheck[0].deadline : null,
           intervalLength: e.intervalLength,
@@ -598,6 +654,10 @@ export class TasksService {
               ? e.taskRepeatDayCheck[0].moneyOutcomeFact
               : e.moneyOutcomePlan,
           repeatCount: e.repeatCount,
+          foodId: e.foodId,
+          foodCountToPrepare: e.foodCountToPrepare,
+          foodCout: e.foodCout,
+          food: e.food ? { ...e.food } : null,
         }));
       }
 
@@ -611,6 +671,7 @@ export class TasksService {
                 tracker.date,
                 tracker.intervalLength ?? 1,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -624,6 +685,7 @@ export class TasksService {
                 tracker.intervalLength ?? 1,
                 tracker.repeatDays,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -637,6 +699,7 @@ export class TasksService {
                 tracker.intervalLength ?? 1,
                 tracker.repeatDays,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -650,6 +713,7 @@ export class TasksService {
                 tracker.intervalLength ?? 1,
                 tracker.repeatIfYearIntervalDays,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -665,7 +729,7 @@ export class TasksService {
 
       return result.map((e) => ({
         id: e.id,
-        name: e.name,
+        name: e.name ?? '',
         checked: e.taskRepeatDayCheck?.length ? e.taskRepeatDayCheck[0].checked : false,
         deadline: e.taskRepeatDayCheck?.length ? e.taskRepeatDayCheck[0].deadline : null,
         intervalLength: e.intervalLength,
@@ -681,6 +745,10 @@ export class TasksService {
             ? e.taskRepeatDayCheck[0].moneyOutcomeFact
             : e.moneyOutcomePlan,
         repeatCount: e.repeatCount,
+        foodId: e.foodId,
+        foodCountToPrepare: e.foodCountToPrepare,
+        foodCout: e.foodCout,
+        food: e.food ? { ...e.food } : null,
       }));
     } catch {
       throw new BadRequestException();
@@ -707,6 +775,7 @@ export class TasksService {
                 tracker.date,
                 tracker.intervalLength ?? 1,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -720,6 +789,7 @@ export class TasksService {
                 tracker.intervalLength ?? 1,
                 tracker.repeatDays,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -733,6 +803,7 @@ export class TasksService {
                 tracker.intervalLength ?? 1,
                 tracker.repeatDays,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -746,6 +817,7 @@ export class TasksService {
                 tracker.intervalLength ?? 1,
                 tracker.repeatIfYearIntervalDays,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -790,6 +862,7 @@ export class TasksService {
                 tracker.date,
                 tracker.intervalLength ?? 1,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -803,6 +876,7 @@ export class TasksService {
                 tracker.intervalLength ?? 1,
                 tracker.repeatDays,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -816,6 +890,7 @@ export class TasksService {
                 tracker.intervalLength ?? 1,
                 tracker.repeatDays,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -829,6 +904,7 @@ export class TasksService {
                 tracker.intervalLength ?? 1,
                 tracker.repeatIfYearIntervalDays,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -905,6 +981,7 @@ export class TasksService {
                 tracker.date,
                 tracker.intervalLength ?? 1,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -918,6 +995,7 @@ export class TasksService {
                 tracker.intervalLength ?? 1,
                 tracker.repeatDays,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -931,6 +1009,7 @@ export class TasksService {
                 tracker.intervalLength ?? 1,
                 tracker.repeatDays,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -944,6 +1023,7 @@ export class TasksService {
                 tracker.intervalLength ?? 1,
                 tracker.repeatIfYearIntervalDays,
                 tracker.repeatCount ?? undefined,
+                tracker.taskRepeatDayCheck,
               )
             ) {
               result.push(tracker);
@@ -968,7 +1048,6 @@ export class TasksService {
       const createdDto: Prisma.TaskCreateInput = {
         ...createTaskDto,
         user: { connect: { id: userId } },
-        ingredients: undefined,
         repeatDays: undefined,
         repeatIfYearIntervalDays: undefined,
         taskRepeatDayCheck: undefined,
@@ -977,15 +1056,6 @@ export class TasksService {
       const created = await this.createTaskMainFields(createdDto);
 
       const promiseArr: Promise<any>[] = [];
-
-      if (created && createTaskDto.ingredients?.length) {
-        promiseArr.push(
-          this.updateTaskIngredients(
-            created.id,
-            createTaskDto.ingredients.map((e) => ({ ...e, trackerId: created.id, id: undefined })),
-          ),
-        );
-      }
 
       if (created && createTaskDto.repeatDays?.length) {
         promiseArr.push(
@@ -1027,15 +1097,6 @@ export class TasksService {
     try {
       const promiseArr: Promise<any>[] = [];
 
-      if (updateTaskDto.ingredients?.length) {
-        promiseArr.push(
-          this.updateTaskIngredients(
-            id,
-            updateTaskDto.ingredients.map((e) => ({ ...e, id: undefined })),
-          ),
-        );
-      }
-
       if (updateTaskDto.repeatDays?.length) {
         promiseArr.push(
           this.updateTaskRepeatDays(
@@ -1061,7 +1122,6 @@ export class TasksService {
       return Promise.all(promiseArr).then(async () => {
         const updatedDto: Prisma.TaskUpdateInput = {
           ...updateTaskDto,
-          ingredients: undefined,
           repeatDays: undefined,
           repeatIfYearIntervalDays: undefined,
           taskRepeatDayCheck: undefined,
@@ -1136,21 +1196,21 @@ export class TasksService {
     }
   }
 
-  async updateTaskIngredients(id: number, data: Prisma.IngredientCreateManyInput[]) {
-    try {
-      await this.prisma.ingredient.deleteMany({
-        where: {
-          trackerId: id,
-        },
-      });
+  // async updateTaskIngredients(id: number, data: Prisma.IngredientCreateManyInput[]) {
+  //   try {
+  //     await this.prisma.ingredient.deleteMany({
+  //       where: {
+  //         trackerId: id,
+  //       },
+  //     });
 
-      await this.prisma.ingredient.createMany({
-        data: data,
-      });
-    } catch {
-      throw new BadRequestException();
-    }
-  }
+  //     await this.prisma.ingredient.createMany({
+  //       data: data,
+  //     });
+  //   } catch {
+  //     throw new BadRequestException();
+  //   }
+  // }
 
   async updateTaskRepeatDayCheck(id: number, data: Prisma.RepeatDayTaskCheckCreateManyInput) {
     try {
@@ -1348,14 +1408,13 @@ export class TasksService {
         },
         data: {
           checked: true,
-        }
-      })
+        },
+      });
 
       return true;
     } catch {
       throw new BadRequestException();
     }
-
   }
 
   async removeTaskCheck(id: number, date: string): Promise<boolean> {
@@ -1374,8 +1433,8 @@ export class TasksService {
         },
         data: {
           checked: false,
-        }
-      })
+        },
+      });
 
       return true;
     } catch {

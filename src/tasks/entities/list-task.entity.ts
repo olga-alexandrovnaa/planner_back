@@ -1,4 +1,4 @@
-import { IntervalType } from '@prisma/client';
+import { FoodType, IntervalType } from '@prisma/client';
 
 export type ListTask = {
   id: number;
@@ -12,4 +12,17 @@ export type ListTask = {
   isFood: boolean;
   checked: boolean;
   deadline: string | null;
+
+  foodId: number | null;
+  food: {
+    id: number;
+    name: string;
+    proteins: number | null;
+    fats: number | null;
+    carbohydrates: number | null;
+    calories: number | null;
+    foodType: FoodType | null;
+  } | null;
+  foodCountToPrepare: number | null;
+  foodCout: number | null;
 };

@@ -2,7 +2,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IntervalType } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import { IsBoolean, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { IngregientDto } from './ingredient.dto';
 import { RepeatDayTaskCheckDto } from './task-repeat-day-check.dto';
 import { RepeatDaysDto } from './repeat-days.dto';
 import { RepeatDaysIfYearDto } from './repeat-days-if-year.dto';
@@ -21,16 +20,32 @@ export class CreateTaskDto {
   @IsNumber()
   readonly userId: number;
 
-  @ApiProperty()
-  @Transform(({ value }) => String(value).trim())
-  @IsString()
-  readonly name: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Transform(({ value }) => (value ? String(value).trim() : null))
+  @IsStringOrNull()
+  readonly name?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @Transform(({ value }) => Boolean(value))
   @IsBoolean()
   readonly isTracker?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly foodId?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly foodCountToPrepare?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly foodCout?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -63,18 +78,6 @@ export class CreateTaskDto {
   @Transform(({ value }) => Boolean(value))
   @IsBoolean()
   readonly isFood?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Transform(({ value }) => (value ? String(value).trim() : null))
-  @IsStringOrNull()
-  readonly recipe?: string | null;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => IngregientDto)
-  @ValidateNested()
-  readonly ingredients?: IngregientDto[];
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -24,8 +24,8 @@ export function logger(req: Request & { id: string }, res: Response, next: NextF
     `${moment(new Date()).format('yyyy-MM-DD HH:mm:ss.SSS')}`,
     `\x1b[33m${ip}\x1b[0m`,
     // req.user ? `\x1b[1;34m${req.user.userName}\x1b[0m` : '',
-    `\t${effects[req.method].method}${req.method}\x1b[0m`,
-    `${effects[req.method].address}${req.originalUrl}\x1b[0m`,
+    `\t${effects[req.method]?.method}${req.method}\x1b[0m`,
+    `${effects[req.method]?.address}${req.originalUrl}\x1b[0m`,
     req.body && Object.entries(req.body).length ? `\t\x1b[1;30;47mBODY\x1b[0m ${JSON.stringify(req.body)}` : '',
   );
 

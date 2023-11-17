@@ -1,0 +1,9 @@
+-- AlterTable
+ALTER TABLE "Food" ADD COLUMN     "calories" DOUBLE PRECISION,
+ADD COLUMN     "carbohydrates" DOUBLE PRECISION,
+ADD COLUMN     "fats" DOUBLE PRECISION,
+ADD COLUMN     "proteins" DOUBLE PRECISION;
+
+-- AlterTable
+ALTER TABLE "Task" ADD COLUMN     "foodCountToPrepare" DOUBLE PRECISION,
+ADD COLUMN     "foodCout" DOUBLE PRECISION;

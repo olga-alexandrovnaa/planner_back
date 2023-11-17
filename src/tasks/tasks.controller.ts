@@ -21,7 +21,7 @@ import { RequestExt } from '../auth/entities/request-ext.entity';
 
 @ApiTags('Пользователи')
 @Controller('tasks')
-@UseGuards(AuthGuard)
+// @UseGuards(AuthGuard)
 
 // @ApiOperation({
 //   summary: 'Получение должности',
@@ -35,7 +35,7 @@ export class TasksController {
   //@UseGuards(AuthGuard)
   @Post()
   async createTaskById(@Req() req: RequestExt, @Body() createTaskDto: CreateTaskDto) {
-    return { data: await this.tasksService.createTask(req.user.id, createTaskDto) };
+    return { data: await this.tasksService.createTask(/*req.user.id*/ 1, createTaskDto) };
   }
   //ред задачу, изменить даты повтора
   //@UseGuards(AuthGuard)
@@ -56,42 +56,42 @@ export class TasksController {
   @Get('dayTasks')
   async getDayTasks(@Req() req: RequestExt, @Query('date') date: string, @Query('type') type: string) {
     if (type in tasksType) {
-      const tasks = await this.tasksService.dayTasks(req.user.id, date, tasksType[type]);
-      return tasks;
+      const tasks = await this.tasksService.dayTasks(/*req.user.id*/ 1, date, tasksType[type]);
+      return { data: tasks };
     }
-    return [];
+    return { data: [] };
   }
 
   //получение списка всех трекеров пользователя
   //@UseGuards(AuthGuard)
   @Get('userTrackers')
   async getUserTrackers(@Req() req: RequestExt) {
-    const tasks = await this.tasksService.userTrackers(req.user.id);
+    const tasks = await this.tasksService.userTrackers(/*req.user.id*/ 1);
     return { data: tasks };
   }
 
-   //остатки по месяцу (расх, дох, баланс по дням, остаток общ, инвест)
-   @Get('month_wallet_info')
-   async monthWalletInfo(
-     @Req() req: RequestExt,
-     @Query('dateStart') dateStart: string,
-     @Query('dateEnd') dateEnd: string,
-   ) {
-     return {
-       data: await this.tasksService.monthWalletInfo(dateStart, dateEnd, req.user.id),
-     }
-   }
- 
-   //ред ост, инв месяца
-   @Post('month_wallet_info')
-   async editMonthMoneyInfo(
-     @Req() req: RequestExt,
-     @Query('date') date: string,
-     @Query('remainder') remainder: number,
-     @Query('investment') investment: number
-   ) {
-     return await this.tasksService.editMonthMoneyInfo(req.user.id, date, remainder, investment);
-   }
+  //остатки по месяцу (расх, дох, баланс по дням, остаток общ, инвест)
+  @Get('month_wallet_info')
+  async monthWalletInfo(
+    @Req() req: RequestExt,
+    @Query('dateStart') dateStart: string,
+    @Query('dateEnd') dateEnd: string,
+  ) {
+    return {
+      data: await this.tasksService.monthWalletInfo(dateStart, dateEnd, /*req.user.id*/ 1),
+    }
+  }
+
+  //ред ост, инв месяца
+  @Post('month_wallet_info')
+  async editMonthMoneyInfo(
+    @Req() req: RequestExt,
+    @Query('date') date: string,
+    @Query('remainder') remainder: number,
+    @Query('investment') investment: number
+  ) {
+    return await this.tasksService.editMonthMoneyInfo(/*req.user.id*/ 1, date, remainder, investment);
+  }
 
   //получение трекера с инф о повторах и выполнению в день
   //@UseGuards(AuthGuard)
@@ -105,7 +105,7 @@ export class TasksController {
           {
             id: 0,
             checked: false,
-            date: task.date,
+            date: date,
             deadline: null,
             isDeleted: false,
             moneyIncomeFact: null,
@@ -134,7 +134,6 @@ export class TasksController {
     };
   }
 
-  
   //отметить трекер
   //@UseGuards(AuthGuard)
   @Patch(':id/setTaskCheck')
@@ -160,16 +159,13 @@ export class TasksController {
     return await this.tasksService.resheduleTask(id, date, newDate);
   }
 
- 
-
-
-//инвест по типам по месяцу (созд ред уд)
-//все типы инвест
-//создать, ред, уд. инвестиц тип
-//продукты с уже добавленными ингрид за период
-//получ, создать, ред, уд типы продуктов, продукты
-//получ, созд, ред, отметка покупки
-//получ, созд, ред, уд заметки по дню
-//получ, созд, ред, уд заметки
-//получ, созд, ред, уд праздники
+  //инвест по типам по месяцу (созд ред уд)
+  //все типы инвест
+  //создать, ред, уд. инвестиц тип
+  //продукты с уже добавленными ингрид за период
+  //получ, создать, ред, уд типы продуктов, продукты
+  //получ, созд, ред, отметка покупки
+  //получ, созд, ред, уд заметки по дню
+  //получ, созд, ред, уд заметки
+  //получ, созд, ред, уд праздники
 }

@@ -17,15 +17,15 @@ model User {
   tokenData Token?
   deletedAt DateTime? @db.Timestamptz()
 
-  tasks Task[]
-  buyings Buying[]
-  holidays Holiday[]
-  notes Note[]
-  dayNotes DayNote[]
-  products Product[]
-  productType ProductType[]
-  monthMoneyInfo MonthMoneyInfo[]
-  investmentType InvestmentType[]
+  tasks                   Task[]
+  buyings                 Buying[]
+  holidays                Holiday[]
+  notes                   Note[]
+  dayNotes                DayNote[]
+  products                Product[]
+  productType             ProductType[]
+  monthMoneyInfo          MonthMoneyInfo[]
+  investmentType          InvestmentType[]
   investmentMonthProgress InvestmentMonthProgress[]
 }
 
@@ -56,70 +56,98 @@ enum MoveTypeIfDayNotExists {
   currentIntervalLastDay
 }
 
+enum FoodType {
+  breakfast
+  soup
+  second
+  dessert
+  salad
+  drink
+  snack
+}
+
 model Task {
   id Int @id @default(autoincrement())
 
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   updatedAt DateTime @updatedAt @db.Timestamptz()
 
-  date        String
-  isTracker   Boolean       @default(false)
-  intervalPart    IntervalType?
-  intervalLength    Int?
-  repeatCount Int?
+  date           String
+  isTracker      Boolean       @default(false)
+  intervalPart   IntervalType?
+  intervalLength Int?
+  repeatCount    Int?
 
   moneyIncomePlan  Float?
   moneyOutcomePlan Float?
 
-  name String
+  name String?
 
-  isFood                   Boolean       @default(false)
-  recipe                   String?
+  isFood      Boolean @default(false)
+  foodId Int?
+  food Food? @relation(fields: [foodId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  foodCountToPrepare Float?
+  foodCout Float?
   
-  ingredients              Ingredient[]
   repeatDays               RepeatDayTaskWithNotYearInterval[]
   repeatIfYearIntervalDays RepeatDayTaskWithYearInterval[]
   taskRepeatDayCheck       RepeatDayTaskCheck[]
 
-  isDeleted Boolean @default(false)
+  isDeleted Boolean   @default(false)
   deletedAt DateTime? @db.Timestamptz()
 }
 
-model MonthMoneyInfo {
-  date String @id 
+model Food {
+  id Int @id @default(autoincrement())
 
-  remainder Float
+  name String
+
+  proteins Float?
+  fats Float?
+  carbohydrates Float?
+  calories Float?
+
+  foodType FoodType?
+  recipe      String?
+  ingredients    Ingredient[]
+
+  tasks Task[]
+}
+
+model MonthMoneyInfo {
+  date String @id
+
+  remainder  Float
   investment Float
-  user      User?     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  userId    Int?
+  user       User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId     Int?
 }
 
 model InvestmentType {
-  id Int @id @default(autoincrement())
+  id   Int    @id @default(autoincrement())
   name String
 
-  user      User?     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  userId    Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId Int?
 
   progress InvestmentMonthProgress[]
 
-  
   isDeleted Boolean @default(false)
 }
 
 model InvestmentMonthProgress {
-  date String @id 
+  date             String         @id
   investmentTypeId Int
-  investmentType InvestmentType @relation(fields: [investmentTypeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  investment Float
-  user      User?     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  userId    Int?
+  investmentType   InvestmentType @relation(fields: [investmentTypeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  investment       Float
+  user             User?          @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId           Int?
 }
 
 model RepeatDayTaskCheck {
-  id       Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   trackerId Int
   tracker   Task @relation(fields: [trackerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -133,51 +161,51 @@ model RepeatDayTaskCheck {
   moneyIncomeFact  Float?
   moneyOutcomeFact Float?
 
-  deadline String? 
-  
+  deadline String?
+
   isDeleted Boolean @default(false)
 
   @@unique([trackerId, date])
 }
 
 model RepeatDayTaskWithNotYearInterval {
-  id       Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   trackerId Int
   tracker   Task @relation(fields: [trackerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  intervalPartIndex      Int?
+  intervalPartIndex Int?
 
   dayFromBeginningInterval Int?
 
-  weekNumber WeekNumber?
+  weekNumber    WeekNumber?
   weekDayNumber Int?
 
   moveTypeIfDayNotExists MoveTypeIfDayNotExists?
 }
 
 model RepeatDayTaskWithYearInterval {
-  id       Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   trackerId Int
   tracker   Task @relation(fields: [trackerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   intervalPartIndex Int
-  yearDateDay         Int
-  yearDateMonth       Int
+  yearDateDay       Int
+  yearDateMonth     Int
 
   moveTypeIfDayNotExists MoveTypeIfDayNotExists?
 }
 
 model ProductType {
-  id       Int       @id @default(autoincrement())
-  name     String
+  id   Int    @id @default(autoincrement())
+  name String
 
-  user      User?     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  userId    Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId Int?
 
-  isDeleted Boolean @default(false)
-  products Product[] @relation(name: "ProductType")
+  isDeleted Boolean   @default(false)
+  products  Product[] @relation(name: "ProductType")
 }
 
 model MeasureUnit {
@@ -190,21 +218,21 @@ model MeasureUnit {
 }
 
 model Product {
-  id            Int          @id @default(autoincrement())
-  name          String
-  typeId        Int?
-  type          ProductType? @relation(name: "ProductType", fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  measureUnitId Int
-  measureUnit   MeasureUnit  @relation(name: "MeasureUnit", fields: [measureUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                    Int          @id @default(autoincrement())
+  name                  String
+  typeId                Int?
+  type                  ProductType? @relation(name: "ProductType", fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  measureUnitId         Int
+  measureUnit           MeasureUnit  @relation(name: "MeasureUnit", fields: [measureUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   includedByIngredients Ingredient[]
 
-  user      User?     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  userId    Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId Int?
 }
 
 model OutcomeMeasureUnit {
-  measureUnitId Int @id
-  measureUnit   MeasureUnit  @relation(fields: [measureUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  measureUnitId Int         @id
+  measureUnit   MeasureUnit @relation(fields: [measureUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   outcomeOfProduct Float
 
@@ -212,43 +240,43 @@ model OutcomeMeasureUnit {
 }
 
 model Ingredient {
-  id       Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  trackerId Int
-  tracker   Task @relation(fields: [trackerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  foodId Int
+  food   Food @relation(fields: [foodId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   productId Int
-  product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product   Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  count Int @default(1)
+  count         Int                 @default(1)
   measureUnitId Int?
-  measureUnit OutcomeMeasureUnit? @relation(fields: [measureUnitId], references: [measureUnitId], onDelete: NoAction, onUpdate: NoAction)
+  measureUnit   OutcomeMeasureUnit? @relation(fields: [measureUnitId], references: [measureUnitId], onDelete: NoAction, onUpdate: NoAction)
 
-  @@unique([trackerId, productId])
+  @@unique([foodId, productId])
 }
 
 model Buying {
-  id            Int          @id @default(autoincrement())
-  userId Int 
-  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  note String
+  id      Int     @id @default(autoincrement())
+  userId  Int
+  user    User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  note    String
   checked Boolean @default(false)
 }
 
 model Note {
-  id            Int          @id @default(autoincrement())
-  userId Int 
-  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  note String
-  name String
+  id     Int    @id @default(autoincrement())
+  userId Int
+  user   User   @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  note   String
+  name   String
 }
 
 model DayNote {
-  id            Int          @id @default(autoincrement())
-  userId Int 
-  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  date String
-  name String
+  id     Int    @id @default(autoincrement())
+  userId Int
+  user   User   @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  date   String
+  name   String
 }
 
 enum WeekNumber {
@@ -259,14 +287,14 @@ enum WeekNumber {
 }
 
 model Holiday {
-  id            Int          @id @default(autoincrement())
-  userId Int 
-  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  date String?
+  id     Int     @id @default(autoincrement())
+  userId Int
+  user   User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  date   String?
 
-  weekNumber WeekNumber?
+  weekNumber    WeekNumber?
   weekDayNumber Int?
 
   moveTypeIfDayNotExists MoveTypeIfDayNotExists?
-  text String
+  text                   String
 }

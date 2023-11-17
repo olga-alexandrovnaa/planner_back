@@ -25,12 +25,12 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-  console.log('origin: ' + (process.env.ALLOWED_ORIGINS?.split(',').concat(' | ') ?? ''));
+  // console.log('origin: ' + (process.env.ALLOWED_ORIGINS?.split(',').concat(' | ') ?? ''));
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS, //?.split(',') ?? '',
+    origin: '*', //process.env.ALLOWED_ORIGINS, //?.split(',') ?? '',
     credentials: true,
   });
-  app.use(cookieParser());
+  // app.use(cookieParser());
   app.use(identifier);
   app.use(logger);
   app.useGlobalInterceptors(new LogRequestsInterceptor(), new ErrorsInterceptor());
