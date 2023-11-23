@@ -6,7 +6,7 @@ import { IsStringOrNull } from '../../decorators/IsStringOrNull.decorator';
 import { IsNumberOrNull } from '../../decorators/IsNumberOrNull.decorator';
 import { IngregientDto } from './ingredient.dto';
 
-export class UpdateTaskDto {
+export class UpdateFoodDto {
   @ApiPropertyOptional()
   @IsOptional()
   @Transform(({ value }) => String(value).trim())

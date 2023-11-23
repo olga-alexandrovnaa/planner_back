@@ -18,6 +18,9 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { tasksType } from './entities/task-type.entity';
 import { RequestExt } from '../auth/entities/request-ext.entity';
+import { CreateFoodDto } from './dto/create-food.dto';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateFoodDto } from './dto/update-food.dto';
 
 @ApiTags('Пользователи')
 @Controller('tasks')
@@ -30,6 +33,62 @@ import { RequestExt } from '../auth/entities/request-ext.entity';
 // @ApiResponse({ status: 200, type: Object })
 export class TasksController {
   constructor(private readonly tasksService: TasksService) { }
+
+  // measureUnits
+  // productsByType/type
+  // productTypes
+
+  //@UseGuards(AuthGuard)
+  @Get('measureUnits')
+  async getMeasureUnits() {
+    const measureUnits = await this.tasksService.measureUnits();
+    return { data: measureUnits };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Get('measureUnitsByIngredient/:product')
+  async getMeasureUnitsByIngredient(@Req() req: RequestExt, @Param('product') product: number) {
+    const measureUnits = await this.tasksService.measureUnitsByIngredient(product);
+    return { data: measureUnits };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Get('productsByType/:type')
+  async getProductsByType(@Req() req: RequestExt, @Param('type') type: number) {
+    const productsByType = await this.tasksService.productsByType(/*req.user.id*/ 1, type);
+    return { data: productsByType };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Get('productTypes')
+  async getProductTypes() {
+    const productTypes = await this.tasksService.productTypes();
+    return { data: productTypes };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Post('product')
+  async createProductById(@Req() req: RequestExt, @Body() createProductDto: CreateProductDto) {
+    return { data: await this.tasksService.createProduct(/*req.user.id*/ 1, createProductDto) };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Post('food')
+  async createFoodById(@Req() req: RequestExt, @Body() createFoodDto: CreateFoodDto) {
+    return { data: await this.tasksService.createFood(/*req.user.id*/ 1, createFoodDto) };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Patch('food/:id')
+  async updateFoodById(@Param('id') id: number, @Body() updateFoodDto: UpdateFoodDto) {
+    return { data: await this.tasksService.updateFood(id, updateFoodDto) };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Delete('food/:id')
+  async deleteFoodById(@Param('id') id: number) {
+    return await this.tasksService.deleteFood({ id });
+  }
 
   //создать
   //@UseGuards(AuthGuard)
@@ -88,9 +147,17 @@ export class TasksController {
     @Req() req: RequestExt,
     @Query('date') date: string,
     @Query('remainder') remainder: number,
-    @Query('investment') investment: number
+    @Query('investment') investment: number,
   ) {
     return await this.tasksService.editMonthMoneyInfo(/*req.user.id*/ 1, date, remainder, investment);
+  }
+
+  //@UseGuards(AuthGuard)
+  @Get('food/:id')
+  async getFoodById(@Param('id') id: number) {
+    const food = await this.tasksService.foodExt(id);
+    if (!food) throw new NotFoundException();
+    return { data: food };
   }
 
   //получение трекера с инф о повторах и выполнению в день

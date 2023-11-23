@@ -23,10 +23,10 @@ model User {
   notes                   Note[]
   dayNotes                DayNote[]
   products                Product[]
-  productType             ProductType[]
   monthMoneyInfo          MonthMoneyInfo[]
   investmentType          InvestmentType[]
   investmentMonthProgress InvestmentMonthProgress[]
+  foods                   Food[]
 }
 
 model Password {
@@ -85,12 +85,12 @@ model Task {
 
   name String?
 
-  isFood      Boolean @default(false)
-  foodId Int?
-  food Food? @relation(fields: [foodId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  isFood             Boolean @default(false)
+  foodId             Int?
+  food               Food?   @relation(fields: [foodId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   foodCountToPrepare Float?
-  foodCout Float?
-  
+  foodCout           Float?
+
   repeatDays               RepeatDayTaskWithNotYearInterval[]
   repeatIfYearIntervalDays RepeatDayTaskWithYearInterval[]
   taskRepeatDayCheck       RepeatDayTaskCheck[]
@@ -104,14 +104,20 @@ model Food {
 
   name String
 
-  proteins Float?
-  fats Float?
+  proteins      Float?
+  fats          Float?
   carbohydrates Float?
-  calories Float?
+  calories      Float?
 
-  foodType FoodType?
+  foodType    FoodType?
   recipe      String?
-  ingredients    Ingredient[]
+  ingredients Ingredient[]
+
+  user   User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId Int?
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz()
 
   tasks Task[]
 }
@@ -201,11 +207,7 @@ model ProductType {
   id   Int    @id @default(autoincrement())
   name String
 
-  user   User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  userId Int?
-
-  isDeleted Boolean   @default(false)
-  products  Product[] @relation(name: "ProductType")
+  products Product[] @relation(name: "ProductType")
 }
 
 model MeasureUnit {
@@ -214,7 +216,9 @@ model MeasureUnit {
 
   products Product[] @relation(name: "MeasureUnit")
 
-  outcomeMeasureUnits OutcomeMeasureUnit[]
+  outcomeChildren       OutcomeMeasureUnit[] @relation(name: "children")
+  outcomeMeasureUnits   OutcomeMeasureUnit[] @relation(name: "outcome")
+  includedByIngredients Ingredient[]
 }
 
 model Product {
@@ -231,12 +235,17 @@ model Product {
 }
 
 model OutcomeMeasureUnit {
-  measureUnitId Int         @id
-  measureUnit   MeasureUnit @relation(fields: [measureUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id Int @id @default(autoincrement())
+
+  parentId Int         
+  parent   MeasureUnit @relation(name: "children", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  measureUnitId Int         
+  measureUnit   MeasureUnit @relation(name: "outcome", fields: [measureUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   outcomeOfProduct Float
 
-  includedByIngredients Ingredient[]
+  @@unique([parentId, measureUnitId])
 }
 
 model Ingredient {
@@ -248,9 +257,9 @@ model Ingredient {
   productId Int
   product   Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  count         Int                 @default(1)
+  count         Int          @default(1)
   measureUnitId Int?
-  measureUnit   OutcomeMeasureUnit? @relation(fields: [measureUnitId], references: [measureUnitId], onDelete: NoAction, onUpdate: NoAction)
+  measureUnit   MeasureUnit? @relation(fields: [measureUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([foodId, productId])
 }
