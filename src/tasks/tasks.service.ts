@@ -215,6 +215,7 @@ export class TasksService {
         where: {
           foodType: type,
           userId,
+          isDeleted: false,
         },
         include: FoodExtInclude,
       });
