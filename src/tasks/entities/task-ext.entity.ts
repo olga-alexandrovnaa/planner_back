@@ -8,11 +8,7 @@ export const TaskExtInclude: Prisma.TaskInclude = {
     include: {
       ingredients: {
         include: {
-          measureUnit: {
-            include: {
-              measureUnit: true,
-            },
-          },
+          measureUnit: true,
           product: true,
         },
       },

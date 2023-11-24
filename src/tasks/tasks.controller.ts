@@ -21,6 +21,7 @@ import { RequestExt } from '../auth/entities/request-ext.entity';
 import { CreateFoodDto } from './dto/create-food.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateFoodDto } from './dto/update-food.dto';
+import { FoodType } from '@prisma/client';
 
 @ApiTags('Пользователи')
 @Controller('tasks')
@@ -34,9 +35,23 @@ import { UpdateFoodDto } from './dto/update-food.dto';
 export class TasksController {
   constructor(private readonly tasksService: TasksService) { }
 
-  // measureUnits
-  // productsByType/type
-  // productTypes
+  //@UseGuards(AuthGuard)
+  @Get('allIngredients')
+  async allIngredients(
+    @Req() req: RequestExt,
+    @Query('dateStart') dateStart: string,
+    @Query('dateEnd') dateEnd: string,
+  ) {
+    const allIngredients = await this.tasksService.allIngredients(/*req.user.id*/ 1, dateStart, dateEnd);
+    return { data: allIngredients };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Get('foodOptionsByType')
+  async getFoodOptionsByType(@Req() req: RequestExt, @Query('type') type: FoodType, @Query('date') date: string) {
+    const foodOptionsByType = await this.tasksService.foodOptionsByType(/*req.user.id*/ 1, type, date);
+    return { data: foodOptionsByType };
+  }
 
   //@UseGuards(AuthGuard)
   @Get('measureUnits')

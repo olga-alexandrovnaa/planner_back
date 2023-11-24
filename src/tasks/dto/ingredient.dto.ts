@@ -7,11 +7,6 @@ export class IngregientDto {
   @ApiProperty()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  readonly trackerId: number;
-
-  @ApiProperty()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
   readonly productId: number;
 
   @ApiPropertyOptional()

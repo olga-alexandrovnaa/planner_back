@@ -56,9 +56,18 @@ export class UpdateTaskDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => (value ? String(value).trim() : null))
-  @IsStringOrNull()
-  readonly recipe?: string | null;
+  @IsNumberOrNull()
+  readonly foodId?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly foodCountToPrepare?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly foodCout?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

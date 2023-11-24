@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import {
   Food,
+  FoodType,
   MoveTypeIfDayNotExists,
   Prisma,
   ProductType,
@@ -192,10 +193,169 @@ export class TasksService {
       throw new BadRequestException();
     }
   }
+
+  async foodOptionsByType(
+    userId,
+    type: FoodType,
+    date: string,
+  ): Promise<
+    {
+      label: string;
+      options: {
+        value: number;
+        label: string;
+        data: FoodExt;
+      }[];
+    }[]
+  > {
+    try {
+      const data = await this.prisma.food.findMany({
+        where: {
+          foodType: type,
+          userId,
+        },
+        include: FoodExtInclude,
+      });
+
+      const end = format(addDays(startOfDay(new Date(date)), -3), 'yyyy-MM-dd');
+
+      const ingredients = await this.allIngredients(userId, date, end);
+
+      const foodWithSameIngredients: FoodExt[] = [];
+
+      for (const iterator of data) {
+        if (iterator.ingredients) {
+          let count = 0;
+          for (const i of iterator.ingredients) {
+            if (!ingredients.find((e) => e.product.id === i.productId)) {
+              count += 1;
+              if (count > 3) break;
+            }
+          }
+          if (count <= 3) {
+            foodWithSameIngredients.push(iterator);
+          }
+        }
+      }
+
+      const all = {
+        label: foodWithSameIngredients.length ? 'Остальное' : 'Результат',
+        options: data
+          .filter((e) => !foodWithSameIngredients.find((el) => el.id === e.id))
+          .map((e) => ({
+            value: e.id,
+            label: e.name,
+            data: e,
+          })),
+      };
+
+      if (foodWithSameIngredients.length) {
+        return [
+          {
+            label: 'с ингред., добавл. за посл. 3 дня (не более 3 новых)',
+            options: foodWithSameIngredients.map((e) => ({
+              value: e.id,
+              label: e.name,
+              data: e,
+            })),
+          },
+          all,
+        ];
+      }
+
+      return [all];
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
   async productTypes(): Promise<ProductType[]> {
     try {
       const data = await this.prisma.productType.findMany();
       return data;
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+  async allIngredients(
+    userId: number,
+    dateStart: string,
+    dateEnd: string,
+  ): Promise<
+    {
+      product: ProductExt;
+      count: number;
+    }[]
+  > {
+    try {
+      let start = startOfDay(new Date(dateStart));
+      const end = startOfDay(new Date(dateEnd));
+
+      const food: number[] = [];
+
+      while (start <= end) {
+        const trackers = await this.dayTasks(userId, format(start, 'yyyy-MM-dd'), tasksType.food);
+
+        for (const iterator of trackers) {
+          if (iterator.food) {
+            food.push(iterator.food.id);
+          }
+        }
+        start = addDays(start, 1);
+      }
+
+      const ingredients = await this.prisma.ingredient.findMany({
+        where: {
+          foodId: {
+            in: food,
+          },
+        },
+        include: {
+          product: {
+            include: {
+              ...ProductExtInclude,
+              measureUnit: {
+                include: {
+                  outcomeChildren: true,
+                },
+              },
+            },
+          },
+          measureUnit: true,
+        },
+      });
+
+      const data: {
+        product: ProductExt;
+        count: number;
+      }[] = [];
+
+      for (const iterator of ingredients) {
+        const added = data.find((e) => e.product.id === iterator.productId);
+
+        let count: number = 0;
+
+        if (iterator.measureUnitId === iterator.product.measureUnitId) {
+          count = iterator.count;
+        } else {
+          const outcome = iterator.product.measureUnit.outcomeChildren.find(
+            (e) => e.measureUnitId === iterator.measureUnitId,
+          );
+
+          if (outcome) count = iterator.count / outcome.outcomeOfProduct;
+        }
+
+        if (!added) {
+          data.push({
+            product: iterator.product,
+            count: count,
+          });
+        } else {
+          added.count += count;
+        }
+      }
+
+      return data.map((e) => ({ ...e, count: Math.round(e.count / 1000) * 1000 }));
     } catch {
       throw new BadRequestException();
     }
@@ -1227,8 +1387,9 @@ export class TasksService {
   async createTask(userId: number, createTaskDto: CreateTaskDto): Promise<TaskExt | null> {
     try {
       const createdDto: Prisma.TaskCreateInput = {
-        ...createTaskDto,
+        ...{ ...createTaskDto, foodId: undefined },
         user: { connect: { id: userId } },
+        food: { connect: { id: createTaskDto.foodId } },
         repeatDays: undefined,
         repeatIfYearIntervalDays: undefined,
         taskRepeatDayCheck: undefined,
@@ -1238,7 +1399,7 @@ export class TasksService {
 
       const promiseArr: Promise<any>[] = [];
 
-      if (created && createTaskDto.repeatDays) {
+      if (created && createTaskDto.repeatDays?.length) {
         promiseArr.push(
           this.updateTaskRepeatDays(
             created.id,
@@ -1247,7 +1408,7 @@ export class TasksService {
         );
       }
 
-      if (created && createTaskDto.repeatIfYearIntervalDays) {
+      if (created && createTaskDto.repeatIfYearIntervalDays?.length) {
         promiseArr.push(
           this.updateTaskRepeatYearDays(
             created.id,
@@ -1302,7 +1463,8 @@ export class TasksService {
 
       return Promise.all(promiseArr).then(async () => {
         const updatedDto: Prisma.TaskUpdateInput = {
-          ...updateTaskDto,
+          ...{ ...updateTaskDto, foodId: undefined },
+          food: { connect: { id: updateTaskDto.foodId } },
           repeatDays: undefined,
           repeatIfYearIntervalDays: undefined,
           taskRepeatDayCheck: undefined,
