@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import {
   Food,
   FoodType,
+  Ingredient,
   MoveTypeIfDayNotExists,
   Prisma,
   ProductType,
@@ -42,6 +43,7 @@ import { FoodExt, FoodExtInclude } from './entities/food-ext.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateFoodDto } from './dto/update-food.dto';
 import { MeasureUnitExt, MeasureUnitExtInclude } from './entities/measure-unit-ext.entity';
+import { IngredientExt } from './entities/ingredient-ext.entity';
 
 @Injectable()
 export class TasksService {
@@ -136,7 +138,7 @@ export class TasksService {
       const data = await this.prisma.measureUnit.findMany({
         include: MeasureUnitExtInclude,
       });
-      return data;
+      return data.sort((a, b) => (a.name > b.name ? 1 : -1));
     } catch {
       throw new BadRequestException();
     }
@@ -173,7 +175,7 @@ export class TasksService {
         include: MeasureUnitExtInclude,
       });
 
-      return [pMu, ...data];
+      return [pMu, ...data].sort((a, b) => (a.name > b.name ? 1 : -1));
     } catch {
       throw new BadRequestException();
     }
@@ -188,7 +190,7 @@ export class TasksService {
         },
         include: ProductExtInclude,
       });
-      return data;
+      return data.sort((a, b) => (a.name > b.name ? 1 : -1));
     } catch {
       throw new BadRequestException();
     }
@@ -246,18 +248,21 @@ export class TasksService {
             value: e.id,
             label: e.name,
             data: e,
-          })),
+          }))
+          .sort((a, b) => (a.data.name > b.data.name ? 1 : -1)),
       };
 
       if (foodWithSameIngredients.length) {
         return [
           {
             label: 'с ингред., добавл. за посл. 3 дня (не более 3 новых)',
-            options: foodWithSameIngredients.map((e) => ({
-              value: e.id,
-              label: e.name,
-              data: e,
-            })),
+            options: foodWithSameIngredients
+              .map((e) => ({
+                value: e.id,
+                label: e.name,
+                data: e,
+              }))
+              .sort((a, b) => (a.data.name > b.data.name ? 1 : -1)),
           },
           all,
         ];
@@ -291,39 +296,59 @@ export class TasksService {
       let start = startOfDay(new Date(dateStart));
       const end = startOfDay(new Date(dateEnd));
 
-      const food: number[] = [];
+      const food: { foodId: number; count: number }[] = [];
 
       while (start <= end) {
         const trackers = await this.dayTasks(userId, format(start, 'yyyy-MM-dd'), tasksType.food);
 
         for (const iterator of trackers) {
           if (iterator.food) {
-            food.push(iterator.food.id);
+            food.push({
+              foodId: iterator.food.id,
+              count: iterator.foodCountToPrepare ?? 1,
+            });
           }
         }
         start = addDays(start, 1);
       }
 
-      const ingredients = await this.prisma.ingredient.findMany({
-        where: {
-          foodId: {
-            in: food,
+      let ingredients: (IngredientExt & {
+        product: ProductExt & {
+          measureUnit: {
+            id: number;
+            name: string;
+            outcomeChildren: {
+              measureUnitId: number;
+              outcomeOfProduct: number;
+            }[];
+          };
+        };
+      })[] = [];
+      for (const element of food) {
+        const ingr = await this.prisma.ingredient.findMany({
+          where: {
+            foodId: element.foodId,
           },
-        },
-        include: {
-          product: {
-            include: {
-              ...ProductExtInclude,
-              measureUnit: {
-                include: {
-                  outcomeChildren: true,
+          include: {
+            product: {
+              include: {
+                ...ProductExtInclude,
+                measureUnit: {
+                  include: {
+                    outcomeChildren: true,
+                  },
                 },
               },
             },
+            measureUnit: true,
+            food: true,
           },
-          measureUnit: true,
-        },
-      });
+        });
+
+        for (let index = 0; index < element.count; index++) {
+          ingredients = [...ingredients, ...ingr];
+        }
+      }
 
       const data: {
         product: ProductExt;
@@ -355,7 +380,9 @@ export class TasksService {
         }
       }
 
-      return data.map((e) => ({ ...e, count: Math.round(e.count / 1000) * 1000 }));
+      return data
+        .map((e) => ({ ...e, count: Math.round(e.count * 1000) / 1000 }))
+        .sort((a, b) => (a.product.name > b.product.name ? 1 : -1));
     } catch {
       throw new BadRequestException();
     }
