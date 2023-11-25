@@ -1155,71 +1155,77 @@ export class TasksService {
     }
   }
 
-  async dayTrackerMoneyInfo(date: string): Promise<{
+  async dayTrackerMoneyInfo(
+    userId: number,
+    date: string,
+  ): Promise<{
     income: number;
     outcome: number;
   }> {
     try {
       const result: TaskExt[] = [];
 
-      const trackers = await this.userTrackersExt(date, undefined);
+      const trackers = await this.dayTasks(userId, date, tasksType.all);
 
       //расчет какие сегодня должны отобразиться
-      trackers.forEach((tracker) => {
+      trackers.forEach(async (tracker) => {
+        const t = await this.taskExt(tracker.id, date);
+
+        if (!t) return;
         switch (tracker.intervalPart) {
           case 'Day':
             if (
               this.isDayIntervalTrackerShowedInDate(
                 date,
-                tracker.date,
-                tracker.intervalLength ?? 1,
-                tracker.repeatCount ?? undefined,
-                tracker.taskRepeatDayCheck,
+                t.date,
+                t.intervalLength ?? 1,
+                t.repeatCount ?? undefined,
+                t.taskRepeatDayCheck,
               )
             ) {
-              result.push(tracker);
+              result.push(t);
             }
             break;
           case 'Week':
             if (
               this.isWeekIntervalTrackerShowedInDate(
                 date,
-                tracker.date,
-                tracker.intervalLength ?? 1,
-                tracker.repeatDays,
-                tracker.repeatCount ?? undefined,
-                tracker.taskRepeatDayCheck,
+                t.date,
+                t.intervalLength ?? 1,
+                t.repeatDays,
+                t.repeatCount ?? undefined,
+                t.taskRepeatDayCheck,
               )
             ) {
-              result.push(tracker);
+              result.push(t);
             }
             break;
           case 'Month':
             if (
               this.isMonthIntervalTrackerShowedInDate(
                 date,
-                tracker.date,
-                tracker.intervalLength ?? 1,
-                tracker.repeatDays,
-                tracker.repeatCount ?? undefined,
-                tracker.taskRepeatDayCheck,
+                t.date,
+                t.intervalLength ?? 1,
+                t.repeatDays,
+                t.repeatCount ?? undefined,
+                t.taskRepeatDayCheck,
               )
             ) {
-              result.push(tracker);
+              result.push(t);
             }
             break;
           case 'Year':
             if (
               this.isYearIntervalTrackerShowedInDate(
                 date,
-                tracker.date,
-                tracker.intervalLength ?? 1,
-                tracker.repeatIfYearIntervalDays,
-                tracker.repeatCount ?? undefined,
-                tracker.taskRepeatDayCheck,
+                t.date,
+                t.intervalLength ?? 1,
+                t.repeatIfYearIntervalDays,
+                t.repeatCount ?? undefined,
+                t.taskRepeatDayCheck,
               )
             ) {
-              result.push(tracker);
+              result.push(t);
             }
             break;
           default:
@@ -1448,7 +1454,7 @@ export class TasksService {
       const createdDto: Prisma.TaskCreateInput = {
         ...{ ...createTaskDto, foodId: undefined },
         user: { connect: { id: userId } },
-        food: { connect: { id: createTaskDto.foodId } },
+        food: createTaskDto.foodId ? { connect: { id: createTaskDto.foodId } } : undefined,
         repeatDays: undefined,
         repeatIfYearIntervalDays: undefined,
         taskRepeatDayCheck: undefined,
@@ -1523,7 +1529,7 @@ export class TasksService {
       return Promise.all(promiseArr).then(async () => {
         const updatedDto: Prisma.TaskUpdateInput = {
           ...{ ...updateTaskDto, foodId: undefined },
-          food: { connect: { id: updateTaskDto.foodId } },
+          food: updateTaskDto.foodId ? { connect: { id: updateTaskDto.foodId } } : undefined,
           repeatDays: undefined,
           repeatIfYearIntervalDays: undefined,
           taskRepeatDayCheck: undefined,
@@ -1783,7 +1789,7 @@ export class TasksService {
 
     while (start <= end) {
       const d = format(start, 'yyyy-MM-dd');
-      const info = await this.dayTrackerMoneyInfo(format(start, 'yyyy-MM-dd'));
+      const info = await this.dayTrackerMoneyInfo(userId, format(start, 'yyyy-MM-dd'));
 
       endRemainder += info.income;
       endRemainder -= info.outcome;
