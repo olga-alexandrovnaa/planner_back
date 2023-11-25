@@ -857,7 +857,9 @@ export class TasksService {
 
       switch (type) {
         case tasksType.all:
-          where = undefined;
+          where = {
+            isFood: false,
+          };
           break;
         case tasksType.income:
           where = {
