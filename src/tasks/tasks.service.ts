@@ -4,6 +4,7 @@ import {
   Food,
   FoodType,
   Ingredient,
+  MeasureUnit,
   MoveTypeIfDayNotExists,
   Prisma,
   ProductType,
@@ -44,6 +45,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateFoodDto } from './dto/update-food.dto';
 import { MeasureUnitExt, MeasureUnitExtInclude } from './entities/measure-unit-ext.entity';
 import { IngredientExt } from './entities/ingredient-ext.entity';
+import { OutcomeMeasureUnitExtInclude } from './entities/outcome-measure-unit-ext.entity';
 
 @Injectable()
 export class TasksService {
@@ -143,7 +145,7 @@ export class TasksService {
       throw new BadRequestException();
     }
   }
-  async measureUnitsByIngredient(product: number): Promise<MeasureUnitExt[]> {
+  async measureUnitsByIngredient(product: number): Promise<MeasureUnit[]> {
     try {
       const p = await this.prisma.product.findUnique({
         where: {
@@ -156,20 +158,26 @@ export class TasksService {
         where: {
           id: p.measureUnitId,
         },
-        include: MeasureUnitExtInclude,
+      });
+
+      const pMuOutcome = await this.prisma.outcomeMeasureUnit.findMany({
+        where: {
+          parentId: p.measureUnitId,
+        },
+        include: OutcomeMeasureUnitExtInclude,
       });
 
       if (!pMu) {
         return [];
       }
-      if (!pMu.outcomeMeasureUnits) {
-        return [pMu];
+      if (!pMuOutcome) {
+        return [pMuOutcome];
       }
 
       const data = await this.prisma.measureUnit.findMany({
         where: {
           id: {
-            in: pMu.outcomeMeasureUnits.map((e) => e.measureUnitId),
+            in: pMuOutcome.map((e) => e.measureUnitId),
           },
         },
         include: MeasureUnitExtInclude,

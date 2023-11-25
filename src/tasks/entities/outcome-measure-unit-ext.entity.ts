@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 
 export const OutcomeMeasureUnitExtInclude: Prisma.OutcomeMeasureUnitInclude = {
+  parent: true,
   measureUnit: true,
 };
 

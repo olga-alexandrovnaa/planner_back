@@ -1,7 +1,10 @@
 import { Prisma } from '@prisma/client';
-import { OutcomeMeasureUnitExtInclude } from './outcome-measure-unit-ext.entity copy';
+import { OutcomeMeasureUnitExtInclude } from './outcome-measure-unit-ext.entity';
 
 export const MeasureUnitExtInclude: Prisma.MeasureUnitInclude = {
+  outcomeChildren: {
+    include: OutcomeMeasureUnitExtInclude,
+  },
   outcomeMeasureUnits: {
     include: OutcomeMeasureUnitExtInclude,
   },

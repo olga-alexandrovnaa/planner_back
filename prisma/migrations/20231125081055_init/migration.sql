@@ -5,6 +5,9 @@ CREATE TYPE "IntervalType" AS ENUM ('Day', 'Week', 'Month', 'Year');
 CREATE TYPE "MoveTypeIfDayNotExists" AS ENUM ('nextIntervalFirstDay', 'currentIntervalLastDay');
 
 -- CreateEnum
+CREATE TYPE "FoodType" AS ENUM ('breakfast', 'soup', 'second', 'dessert', 'salad', 'drink', 'snack');
+
+-- CreateEnum
 CREATE TYPE "WeekNumber" AS ENUM ('first', 'second', 'third', 'last');
 
 -- CreateTable
@@ -47,13 +50,32 @@ CREATE TABLE "Task" (
     "repeatCount" INTEGER,
     "moneyIncomePlan" DOUBLE PRECISION,
     "moneyOutcomePlan" DOUBLE PRECISION,
-    "name" TEXT NOT NULL,
+    "name" TEXT,
     "isFood" BOOLEAN NOT NULL DEFAULT false,
-    "recipe" TEXT,
+    "foodId" INTEGER,
+    "foodCountToPrepare" DOUBLE PRECISION,
+    "foodCout" DOUBLE PRECISION,
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "deletedAt" TIMESTAMPTZ,
 
     CONSTRAINT "Task_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Food" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "proteins" DOUBLE PRECISION,
+    "fats" DOUBLE PRECISION,
+    "carbohydrates" DOUBLE PRECISION,
+    "calories" DOUBLE PRECISION,
+    "foodType" "FoodType",
+    "recipe" TEXT,
+    "userId" INTEGER,
+    "isDeleted" BOOLEAN NOT NULL DEFAULT false,
+    "deletedAt" TIMESTAMPTZ,
+
+    CONSTRAINT "Food_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -131,8 +153,6 @@ CREATE TABLE "RepeatDayTaskWithYearInterval" (
 CREATE TABLE "ProductType" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
-    "userId" INTEGER,
-    "isDeleted" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "ProductType_pkey" PRIMARY KEY ("id")
 );
@@ -158,18 +178,20 @@ CREATE TABLE "Product" (
 
 -- CreateTable
 CREATE TABLE "OutcomeMeasureUnit" (
+    "id" SERIAL NOT NULL,
+    "parentId" INTEGER NOT NULL,
     "measureUnitId" INTEGER NOT NULL,
     "outcomeOfProduct" DOUBLE PRECISION NOT NULL,
 
-    CONSTRAINT "OutcomeMeasureUnit_pkey" PRIMARY KEY ("measureUnitId")
+    CONSTRAINT "OutcomeMeasureUnit_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Ingredient" (
     "id" SERIAL NOT NULL,
-    "trackerId" INTEGER NOT NULL,
+    "foodId" INTEGER NOT NULL,
     "productId" INTEGER NOT NULL,
-    "count" INTEGER NOT NULL DEFAULT 1,
+    "count" DOUBLE PRECISION NOT NULL DEFAULT 1,
     "measureUnitId" INTEGER,
 
     CONSTRAINT "Ingredient_pkey" PRIMARY KEY ("id")
@@ -225,7 +247,10 @@ CREATE UNIQUE INDEX "Password_userId_key" ON "Password"("userId");
 CREATE UNIQUE INDEX "RepeatDayTaskCheck_trackerId_date_key" ON "RepeatDayTaskCheck"("trackerId", "date");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Ingredient_trackerId_productId_key" ON "Ingredient"("trackerId", "productId");
+CREATE UNIQUE INDEX "OutcomeMeasureUnit_parentId_measureUnitId_key" ON "OutcomeMeasureUnit"("parentId", "measureUnitId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Ingredient_foodId_productId_key" ON "Ingredient"("foodId", "productId");
 
 -- AddForeignKey
 ALTER TABLE "Password" ADD CONSTRAINT "Password_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -235,6 +260,12 @@ ALTER TABLE "Token" ADD CONSTRAINT "Token_userId_fkey" FOREIGN KEY ("userId") RE
 
 -- AddForeignKey
 ALTER TABLE "Task" ADD CONSTRAINT "Task_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE "Task" ADD CONSTRAINT "Task_foodId_fkey" FOREIGN KEY ("foodId") REFERENCES "Food"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE "Food" ADD CONSTRAINT "Food_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "MonthMoneyInfo" ADD CONSTRAINT "MonthMoneyInfo_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
@@ -258,9 +289,6 @@ ALTER TABLE "RepeatDayTaskWithNotYearInterval" ADD CONSTRAINT "RepeatDayTaskWith
 ALTER TABLE "RepeatDayTaskWithYearInterval" ADD CONSTRAINT "RepeatDayTaskWithYearInterval_trackerId_fkey" FOREIGN KEY ("trackerId") REFERENCES "Task"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "ProductType" ADD CONSTRAINT "ProductType_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
-
--- AddForeignKey
 ALTER TABLE "Product" ADD CONSTRAINT "Product_typeId_fkey" FOREIGN KEY ("typeId") REFERENCES "ProductType"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- AddForeignKey
@@ -270,16 +298,19 @@ ALTER TABLE "Product" ADD CONSTRAINT "Product_measureUnitId_fkey" FOREIGN KEY ("
 ALTER TABLE "Product" ADD CONSTRAINT "Product_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- AddForeignKey
+ALTER TABLE "OutcomeMeasureUnit" ADD CONSTRAINT "OutcomeMeasureUnit_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "MeasureUnit"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- AddForeignKey
 ALTER TABLE "OutcomeMeasureUnit" ADD CONSTRAINT "OutcomeMeasureUnit_measureUnitId_fkey" FOREIGN KEY ("measureUnitId") REFERENCES "MeasureUnit"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "Ingredient" ADD CONSTRAINT "Ingredient_trackerId_fkey" FOREIGN KEY ("trackerId") REFERENCES "Task"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+ALTER TABLE "Ingredient" ADD CONSTRAINT "Ingredient_foodId_fkey" FOREIGN KEY ("foodId") REFERENCES "Food"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "Ingredient" ADD CONSTRAINT "Ingredient_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "Ingredient" ADD CONSTRAINT "Ingredient_measureUnitId_fkey" FOREIGN KEY ("measureUnitId") REFERENCES "OutcomeMeasureUnit"("measureUnitId") ON DELETE NO ACTION ON UPDATE NO ACTION;
+ALTER TABLE "Ingredient" ADD CONSTRAINT "Ingredient_measureUnitId_fkey" FOREIGN KEY ("measureUnitId") REFERENCES "MeasureUnit"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "Buying" ADD CONSTRAINT "Buying_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
