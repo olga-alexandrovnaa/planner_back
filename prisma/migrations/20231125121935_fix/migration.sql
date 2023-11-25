@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Product" ADD COLUMN     "count" INTEGER NOT NULL DEFAULT 1;

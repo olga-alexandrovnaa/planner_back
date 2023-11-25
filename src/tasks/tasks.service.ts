@@ -3,7 +3,6 @@ import { PrismaService } from '../prisma.service';
 import {
   Food,
   FoodType,
-  Ingredient,
   MeasureUnit,
   MoveTypeIfDayNotExists,
   Prisma,
@@ -193,8 +192,16 @@ export class TasksService {
     try {
       const data = await this.prisma.product.findMany({
         where: {
-          typeId: type,
-          userId,
+          OR: [
+            {
+              typeId: type,
+              userId,
+            },
+            {
+              typeId: type,
+              userId: null,
+            },
+          ],
         },
         include: ProductExtInclude,
       });
@@ -221,16 +228,25 @@ export class TasksService {
     try {
       const data = await this.prisma.food.findMany({
         where: {
-          foodType: type,
-          userId,
-          isDeleted: false,
+          OR: [
+            {
+              foodType: type,
+              isDeleted: false,
+              userId,
+            },
+            {
+              foodType: type,
+              isDeleted: false,
+              userId: null,
+            },
+          ],
         },
         include: FoodExtInclude,
       });
 
       const end = format(addDays(startOfDay(new Date(date)), -3), 'yyyy-MM-dd');
 
-      const ingredients = await this.allIngredients(userId, date, end);
+      const ingredients = await this.allIngredients(userId, end, date);
 
       const foodWithSameIngredients: FoodExt[] = [];
 
@@ -299,6 +315,7 @@ export class TasksService {
     {
       product: ProductExt;
       count: number;
+      countInPack: number;
     }[]
   > {
     try {
@@ -390,7 +407,13 @@ export class TasksService {
       }
 
       return data
-        .map((e) => ({ ...e, count: Math.round(e.count * 1000) / 1000 }))
+        .map((e) => ({
+          ...e,
+          count: Math.ceil(e.count * 1000) / 1000,
+          countInPack: e.product.count
+            ? Math.ceil((Math.ceil(e.count * 1000) / (1000 * e.product.count)) * 10) / 10
+            : Math.ceil(e.count * 1000) / 1000,
+        }))
         .sort((a, b) => (a.product.name > b.product.name ? 1 : -1));
     } catch {
       throw new BadRequestException();

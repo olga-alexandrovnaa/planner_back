@@ -95,13 +95,17 @@ export class TasksController {
 
   //@UseGuards(AuthGuard)
   @Patch('food/:id')
-  async updateFoodById(@Param('id') id: number, @Body() updateFoodDto: UpdateFoodDto) {
+  async updateFoodById(@Req() req: RequestExt, @Param('id') id: number, @Body() updateFoodDto: UpdateFoodDto) {
+    const food = await this.tasksService.foodExt(id);
+    if (!food || food.userId !== /*req.user.id*/ 1) return;
     return { data: await this.tasksService.updateFood(id, updateFoodDto) };
   }
 
   //@UseGuards(AuthGuard)
   @Delete('food/:id')
-  async deleteFoodById(@Param('id') id: number) {
+  async deleteFoodById(@Req() req: RequestExt, @Param('id') id: number) {
+    const food = await this.tasksService.foodExt(id);
+    if (!food || food.userId !== /*req.user.id*/ 1) return;
     return await this.tasksService.deleteFood({ id });
   }
 

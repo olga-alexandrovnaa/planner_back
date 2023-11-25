@@ -229,6 +229,7 @@ model Product {
   measureUnitId         Int
   measureUnit           MeasureUnit  @relation(name: "MeasureUnit", fields: [measureUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   includedByIngredients Ingredient[]
+  count Float @default(1)
 
   user   User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   userId Int?

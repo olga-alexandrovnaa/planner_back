@@ -18,4 +18,9 @@ export class CreateProductDto {
   @Transform(({ value }) => Number(value))
   @IsNumber()
   readonly measureUnitId: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly count?: number;
 }
