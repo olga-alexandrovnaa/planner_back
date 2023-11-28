@@ -1596,6 +1596,7 @@ export class TasksService {
         user: { connect: { id: userId } },
         food: createTaskDto.foodId ? { connect: { id: createTaskDto.foodId } } : undefined,
         repeatDays: undefined,
+        taskBuyings: undefined,
         repeatIfYearIntervalDays: undefined,
         taskRepeatDayCheck: undefined,
       };
@@ -1632,8 +1633,8 @@ export class TasksService {
         );
       }
 
-      if (created && createTaskDto.buyings?.length) {
-        promiseArr.push(this.updateTaskBuyings(created.id, createTaskDto.buyings));
+      if (created && createTaskDto.taskBuyings?.length) {
+        promiseArr.push(this.updateTaskBuyings(created.id, createTaskDto.taskBuyings));
       }
 
       return Promise.all(promiseArr).then(async () => {

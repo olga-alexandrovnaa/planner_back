@@ -109,7 +109,5 @@ export class CreateTaskDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Type(() => IsNumber)
-  @ValidateNested()
-  readonly buyings?: number[];
+  readonly taskBuyings?: number[];
 }
