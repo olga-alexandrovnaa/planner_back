@@ -40,6 +40,16 @@ export class CreateTaskDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumberOrNull()
+  readonly outcomeTypeId?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly incomeTypeId?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
   readonly foodCountToPrepare?: number;
 
   @ApiPropertyOptional()
@@ -96,4 +106,10 @@ export class CreateTaskDto {
   @Type(() => RepeatDayTaskCheckDto)
   @ValidateNested()
   readonly taskRepeatDayCheck?: RepeatDayTaskCheckDto[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => IsNumber)
+  @ValidateNested()
+  readonly buyings?: number[];
 }

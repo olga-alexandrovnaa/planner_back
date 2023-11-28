@@ -10,6 +10,7 @@ import {
   UseGuards,
   Query,
   Req,
+  Put,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
@@ -22,6 +23,10 @@ import { CreateFoodDto } from './dto/create-food.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateFoodDto } from './dto/update-food.dto';
 import { FoodType } from '@prisma/client';
+import { UpdateBuyingDto } from './dto/update-buying.dto';
+import { CreateBuyingDto } from './dto/create-buying.dto';
+import { PutDayNoteDto } from './dto/put-day-note.dto';
+import { CreateIncomeOutcomeTypeDto } from './dto/create-outcome-type.dto';
 
 @ApiTags('Пользователи')
 @Controller('tasks')
@@ -34,6 +39,71 @@ import { FoodType } from '@prisma/client';
 // @ApiResponse({ status: 200, type: Object })
 export class TasksController {
   constructor(private readonly tasksService: TasksService) { }
+
+  //@UseGuards(AuthGuard)
+  @Get('buyings')
+  async getBuyings(@Req() req: RequestExt) {
+    const productsByType = await this.tasksService.getBuyings(/*req.user.id*/ 1);
+    return { data: productsByType };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Get('outcomeTypes')
+  async getOutcomeTypes(@Req() req: RequestExt) {
+    const productsByType = await this.tasksService.getOutcomeTypes(/*req.user.id*/ 1);
+    return { data: productsByType };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Get('incomeTypes')
+  async getIncomeTypes(@Req() req: RequestExt) {
+    const productsByType = await this.tasksService.getIncomeTypes(/*req.user.id*/ 1);
+    return { data: productsByType };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Post('outcomeType')
+  async createOutcomeType(@Req() req: RequestExt, @Body() createIncomeOutcomeTypeDto: CreateIncomeOutcomeTypeDto) {
+    return { data: await this.tasksService.createOutcomeType(/*req.user.id*/ 1, createIncomeOutcomeTypeDto) };
+  }
+  //@UseGuards(AuthGuard)
+  @Post('incomeType')
+  async createIncomeType(@Req() req: RequestExt, @Body() createIncomeOutcomeTypeDto: CreateIncomeOutcomeTypeDto) {
+    return { data: await this.tasksService.createIncomeType(/*req.user.id*/ 1, createIncomeOutcomeTypeDto) };
+  }
+  //@UseGuards(AuthGuard)
+  @Post('buying')
+  async createBuying(@Req() req: RequestExt, @Body() createBuyingDto: CreateBuyingDto) {
+    return { data: await this.tasksService.createBuying(/*req.user.id*/ 1, createBuyingDto) };
+  }
+  //@UseGuards(AuthGuard)
+  @Delete('buying/:id')
+  async deleteBuying(@Req() req: RequestExt, @Param('id') id: number) {
+    const buying = await this.tasksService.getBuying(id);
+    if (!buying || buying.userId !== /*req.user.id*/ 1) return;
+    return { data: await this.tasksService.deleteBuying({ id: id }) };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Patch('buying/:id')
+  async updateBuyingById(@Req() req: RequestExt, @Param('id') id: number, @Body() updateBuyingDto: UpdateBuyingDto) {
+    const buying = await this.tasksService.getBuying(id);
+    if (!buying || buying.userId !== /*req.user.id*/ 1) return;
+    return { data: await this.tasksService.updateBuying(id, updateBuyingDto) };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Get('dayNote')
+  async getDayNote(@Req() req: RequestExt, @Query('date') date: string) {
+    const tasks = await this.tasksService.dayNote(/*req.user.id*/ 1, date);
+    return { data: tasks };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Put('dayNote')
+  async updateDayNoteById(@Req() req: RequestExt, @Query('date') date: string, @Body() putDayNoteDto: PutDayNoteDto) {
+    return { data: await this.tasksService.putDayNote(/*req.user.id*/ 1, date, putDayNoteDto) };
+  }
 
   //@UseGuards(AuthGuard)
   @Get('allIngredients')
@@ -89,7 +159,7 @@ export class TasksController {
 
   //@UseGuards(AuthGuard)
   @Post('food')
-  async createFoodById(@Req() req: RequestExt, @Body() createFoodDto: CreateFoodDto) {
+  async createFood(@Req() req: RequestExt, @Body() createFoodDto: CreateFoodDto) {
     return { data: await this.tasksService.createFood(/*req.user.id*/ 1, createFoodDto) };
   }
 
@@ -157,7 +227,7 @@ export class TasksController {
   ) {
     return {
       data: await this.tasksService.monthWalletInfo(dateStart, dateEnd, /*req.user.id*/ 1),
-    }
+    };
   }
 
   //ред ост, инв месяца
@@ -248,10 +318,5 @@ export class TasksController {
   //инвест по типам по месяцу (созд ред уд)
   //все типы инвест
   //создать, ред, уд. инвестиц тип
-  //продукты с уже добавленными ингрид за период
-  //получ, создать, ред, уд типы продуктов, продукты
-  //получ, созд, ред, отметка покупки
-  //получ, созд, ред, уд заметки по дню
-  //получ, созд, ред, уд заметки
   //получ, созд, ред, уд праздники
 }

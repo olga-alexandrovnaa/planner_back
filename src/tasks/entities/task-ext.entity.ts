@@ -4,6 +4,13 @@ export const TaskExtInclude: Prisma.TaskInclude = {
   repeatDays: true,
   repeatIfYearIntervalDays: true,
   taskRepeatDayCheck: true,
+  incomeType: true,
+  outcomeType: true,
+  taskBuyings: {
+    include: {
+      buying: true,
+    },
+  },
   food: {
     include: {
       ingredients: {

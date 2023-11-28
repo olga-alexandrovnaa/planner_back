@@ -1,10 +1,14 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import {
+  Buying,
+  DayNote,
   Food,
   FoodType,
+  IncomeType,
   MeasureUnit,
   MoveTypeIfDayNotExists,
+  OutcomeType,
   Prisma,
   ProductType,
   RepeatDayTaskCheck,
@@ -45,6 +49,10 @@ import { UpdateFoodDto } from './dto/update-food.dto';
 import { MeasureUnitExt, MeasureUnitExtInclude } from './entities/measure-unit-ext.entity';
 import { IngredientExt } from './entities/ingredient-ext.entity';
 import { OutcomeMeasureUnitExtInclude } from './entities/outcome-measure-unit-ext.entity';
+import { CreateBuyingDto } from './dto/create-buying.dto';
+import { UpdateBuyingDto } from './dto/update-buying.dto';
+import { PutDayNoteDto } from './dto/put-day-note.dto';
+import { CreateIncomeOutcomeTypeDto } from './dto/create-outcome-type.dto';
 
 @Injectable()
 export class TasksService {
@@ -115,6 +123,136 @@ export class TasksService {
         },
       });
       return data;
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async getBuyings(userId): Promise<Buying[]> {
+    try {
+      return await this.prisma.buying.findMany({
+        where: {
+          userId,
+          checked: false,
+        },
+      });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async getBuying(id): Promise<Buying | null> {
+    try {
+      return await this.prisma.buying.findFirst({
+        where: { id },
+      });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async createBuying(userId, createBuyingDto: CreateBuyingDto): Promise<Buying> {
+    try {
+      return await this.prisma.buying.create({
+        data: { ...createBuyingDto, userId },
+      });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async createOutcomeType(userId, createIncomeOutcomeTypeDto: CreateIncomeOutcomeTypeDto): Promise<OutcomeType> {
+    try {
+      return await this.prisma.outcomeType.create({
+        data: { ...createIncomeOutcomeTypeDto, userId },
+      });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async createIncomeType(userId, createIncomeOutcomeTypeDto: CreateIncomeOutcomeTypeDto): Promise<IncomeType> {
+    try {
+      return await this.prisma.incomeType.create({
+        data: { ...createIncomeOutcomeTypeDto, userId },
+      });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async updateBuying(id, updateBuyingDto: UpdateBuyingDto): Promise<Buying> {
+    try {
+      return await this.prisma.buying.update({
+        where: { id },
+        data: updateBuyingDto,
+      });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async deleteBuying(where: Prisma.BuyingWhereUniqueInput): Promise<boolean> {
+    await this.prisma.buying.delete({
+      where,
+    });
+    return true;
+  }
+
+  async getOutcomeTypes(userId): Promise<OutcomeType[]> {
+    try {
+      return await this.prisma.outcomeType.findMany({ where: { userId } });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async getIncomeTypes(userId): Promise<IncomeType[]> {
+    try {
+      return await this.prisma.incomeType.findMany({ where: { userId } });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async dayNote(userId, date: string): Promise<DayNote> {
+    try {
+      const data = await this.prisma.dayNote.findFirst({
+        where: {
+          date,
+          userId,
+        },
+      });
+      return (
+        data ?? {
+          date: date,
+          note: '',
+          userId: userId,
+        }
+      );
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async putDayNote(userId, date: string, putDayNoteDto: PutDayNoteDto): Promise<DayNote> {
+    try {
+      return await this.prisma.dayNote.upsert({
+        create: {
+          date,
+          userId,
+          note: putDayNoteDto.note,
+        },
+        update: {
+          note: putDayNoteDto.note,
+        },
+        where: {
+          userId_date: {
+            date,
+            userId,
+          },
+        },
+      });
     } catch {
       throw new BadRequestException();
     }
@@ -1494,6 +1632,10 @@ export class TasksService {
         );
       }
 
+      if (created && createTaskDto.buyings?.length) {
+        promiseArr.push(this.updateTaskBuyings(created.id, createTaskDto.buyings));
+      }
+
       return Promise.all(promiseArr).then(async () => {
         return await this.taskExt(created.id, created.date);
       });
@@ -1634,6 +1776,31 @@ export class TasksService {
       await this.prisma.repeatDayTaskCheck.createMany({
         data: data,
       });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async updateTaskBuyings(id: number, data: number[]) {
+    try {
+      for (const iterator of data) {
+        await this.prisma.taskBuyings.upsert({
+          create: {
+            taskId: id,
+            buyingId: iterator,
+          },
+          update: {
+            taskId: id,
+            buyingId: iterator,
+          },
+          where: {
+            taskId_buyingId: {
+              taskId: id,
+              buyingId: iterator,
+            },
+          },
+        });
+      }
     } catch {
       throw new BadRequestException();
     }

@@ -50,6 +50,16 @@ export class UpdateTaskDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsNumberOrNull()
+  readonly outcomeTypeId?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly incomeTypeId?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => Boolean(value))
   @IsBoolean()
   readonly isFood?: boolean;

@@ -24,9 +24,11 @@ model User {
   dayNotes                DayNote[]
   products                Product[]
   monthMoneyInfo          MonthMoneyInfo[]
-  investmentType          InvestmentType[]
+  investmentTypes         InvestmentType[]
   investmentMonthProgress InvestmentMonthProgress[]
   foods                   Food[]
+  incomeTypes             IncomeType[]
+  outcomeTypes            OutcomeType[]
 }
 
 model Password {
@@ -82,6 +84,12 @@ model Task {
 
   moneyIncomePlan  Float?
   moneyOutcomePlan Float?
+  
+  outcomeTypeId  Int?
+  outcomeType  OutcomeType? @relation(fields: [outcomeTypeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  incomeTypeId  Int?
+  incomeType  IncomeType? @relation(fields: [incomeTypeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   name String?
 
@@ -94,9 +102,19 @@ model Task {
   repeatDays               RepeatDayTaskWithNotYearInterval[]
   repeatIfYearIntervalDays RepeatDayTaskWithYearInterval[]
   taskRepeatDayCheck       RepeatDayTaskCheck[]
+  taskBuyings              TaskBuyings[]
 
   isDeleted Boolean   @default(false)
   deletedAt DateTime? @db.Timestamptz()
+}
+model TaskBuyings {
+  taskId Int
+  buyingId Int
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  buying Buying @relation(fields: [buyingId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([taskId, buyingId])
 }
 
 model Food {
@@ -129,6 +147,30 @@ model MonthMoneyInfo {
   investment Float
   user       User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   userId     Int?
+}
+
+model IncomeType {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  user   User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId Int?
+
+  isDeleted Boolean @default(false)
+
+  tasks Task[]
+}
+
+model OutcomeType {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  user   User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId Int?
+
+  isDeleted Boolean @default(false)
+
+  tasks Task[]
 }
 
 model InvestmentType {
@@ -271,6 +313,7 @@ model Buying {
   user    User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   note    String
   checked Boolean @default(false)
+  taskBuyings  TaskBuyings[]
 }
 
 model Note {
@@ -282,11 +325,12 @@ model Note {
 }
 
 model DayNote {
-  id     Int    @id @default(autoincrement())
   userId Int
   user   User   @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   date   String
-  name   String
+  note   String
+
+  @@id([userId, date])
 }
 
 enum WeekNumber {
