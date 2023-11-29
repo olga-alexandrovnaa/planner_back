@@ -19,7 +19,6 @@ model User {
 
   tasks                   Task[]
   buyings                 Buying[]
-  holidays                Holiday[]
   notes                   Note[]
   dayNotes                DayNote[]
   products                Product[]
@@ -29,6 +28,7 @@ model User {
   foods                   Food[]
   incomeTypes             IncomeType[]
   outcomeTypes            OutcomeType[]
+  eventTypes              EventType[]
 }
 
 model Password {
@@ -93,6 +93,8 @@ model Task {
 
   name String?
 
+
+  isHoliday          Boolean @default(false)
   isFood             Boolean @default(false)
   foodId             Int?
   food               Food?   @relation(fields: [foodId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -147,6 +149,27 @@ model MonthMoneyInfo {
   investment Float
   user       User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   userId     Int?
+}
+
+model EventType {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  user   User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId Int?
+
+  isDeleted Boolean @default(false)
+
+  checkingInfo EventCheck[]
+}
+
+model EventCheck {
+  id Int @id @default(autoincrement())
+  eventId Int
+  event   EventType @relation(fields: [eventId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  date String
+  note             String?
+  @@unique([eventId, date])
 }
 
 model IncomeType {
@@ -338,17 +361,4 @@ enum WeekNumber {
   second
   third
   last
-}
-
-model Holiday {
-  id     Int     @id @default(autoincrement())
-  userId Int
-  user   User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  date   String?
-
-  weekNumber    WeekNumber?
-  weekDayNumber Int?
-
-  moveTypeIfDayNotExists MoveTypeIfDayNotExists?
-  text                   String
 }

@@ -27,6 +27,8 @@ import { UpdateBuyingDto } from './dto/update-buying.dto';
 import { CreateBuyingDto } from './dto/create-buying.dto';
 import { PutDayNoteDto } from './dto/put-day-note.dto';
 import { CreateIncomeOutcomeTypeDto } from './dto/create-outcome-type.dto';
+import { CreateEventTypeDto } from './dto/create-event-type.dto';
+import { PutEventCheckingDto } from './dto/put-event-checking.dto';
 
 @ApiTags('Пользователи')
 @Controller('tasks')
@@ -42,6 +44,13 @@ export class TasksController {
 
   //@UseGuards(AuthGuard)
   @Get('buyings')
+  async getHolidays(@Req() req: RequestExt, @Query('dateStart') dateStart: string, @Query('dateEnd') dateEnd: string) {
+    const holidays = await this.tasksService.getHolidays(/*req.user.id*/ 1, dateStart, dateEnd);
+    return { data: holidays };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Get('holidays')
   async getBuyings(@Req() req: RequestExt) {
     const productsByType = await this.tasksService.getBuyings(/*req.user.id*/ 1);
     return { data: productsByType };
@@ -52,6 +61,39 @@ export class TasksController {
   async getOutcomeTypes(@Req() req: RequestExt) {
     const productsByType = await this.tasksService.getOutcomeTypes(/*req.user.id*/ 1);
     return { data: productsByType };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Get('events')
+  async getEventTypes(@Req() req: RequestExt) {
+    const productsByType = await this.tasksService.getEventTypes(/*req.user.id*/ 1);
+    return { data: productsByType };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Post('event')
+  async createEventType(@Req() req: RequestExt, @Body() createEventTypeDto: CreateEventTypeDto) {
+    return { data: await this.tasksService.createEventType(/*req.user.id*/ 1, createEventTypeDto) };
+  }
+
+  //@UseGuards(AuthGuard)
+  @Put('event/:id/CheckingInfo')
+  async eventTypeCheckingInfo(
+    @Req() req: RequestExt,
+    @Param('id') id: number,
+    @Query('dateStart') dateStart: string,
+    @Query('dateEnd') dateEnd: string,
+    @Body() putEventCheckingDto: PutEventCheckingDto,
+  ) {
+    return {
+      data: await this.tasksService.putEventCheckingInfo(
+        /*req.user.id*/ 1,
+        id,
+        dateStart,
+        dateEnd,
+        putEventCheckingDto,
+      ),
+    };
   }
 
   //@UseGuards(AuthGuard)
@@ -249,6 +291,18 @@ export class TasksController {
     return { data: food };
   }
 
+  //получение (кол-во, кол-во выполненных) по конкретному типу события за период
+  //@UseGuards(AuthGuard)
+  @Get('event/:id/progress')
+  async eventProgress(
+    @Param('id') id: number,
+    @Query('dateStart') dateStart: string,
+    @Query('dateEnd') dateEnd: string,
+  ) {
+    return {
+      data: await this.tasksService.taskProgress(id, dateStart, dateEnd),
+    };
+  }
   //получение трекера с инф о повторах и выполнению в день
   //@UseGuards(AuthGuard)
   @Get(':id')

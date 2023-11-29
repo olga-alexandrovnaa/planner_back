@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import {
   Buying,
   DayNote,
+  EventType,
   Food,
   FoodType,
   IncomeType,
@@ -53,6 +54,8 @@ import { CreateBuyingDto } from './dto/create-buying.dto';
 import { UpdateBuyingDto } from './dto/update-buying.dto';
 import { PutDayNoteDto } from './dto/put-day-note.dto';
 import { CreateIncomeOutcomeTypeDto } from './dto/create-outcome-type.dto';
+import { CreateEventTypeDto } from './dto/create-event-type.dto';
+import { PutEventCheckingDto } from './dto/put-event-checking.dto';
 
 @Injectable()
 export class TasksService {
@@ -128,6 +131,37 @@ export class TasksService {
     }
   }
 
+  async getHolidays(userId, dateStart, dateEnd): Promise<string[]> {
+    try {
+      const trackers = await this.prisma.task.findMany({
+        where: {
+          isHoliday: true,
+          isTracker: true,
+          userId,
+        },
+      });
+
+      let start = startOfDay(new Date(dateStart));
+      const end = startOfDay(new Date(dateEnd));
+
+      const res: string[] = [];
+
+      while (start <= end) {
+        for (const iterator of trackers) {
+          const info = await this.dayTrackerPlanAndCheckInfo(iterator.id, format(start, 'yyyy-MM-dd'));
+          if (info.checked) {
+            res.push(format(start, 'yyyy-MM-dd'));
+          }
+
+          start = addDays(start, 1);
+        }
+      }
+      return res;
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
   async getBuyings(userId): Promise<Buying[]> {
     try {
       return await this.prisma.buying.findMany({
@@ -171,6 +205,16 @@ export class TasksService {
     }
   }
 
+  async createEventType(userId, createEventTypeDto: CreateEventTypeDto): Promise<EventType> {
+    try {
+      return await this.prisma.eventType.create({
+        data: { ...createEventTypeDto, userId },
+      });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
   async createIncomeType(userId, createIncomeOutcomeTypeDto: CreateIncomeOutcomeTypeDto): Promise<IncomeType> {
     try {
       return await this.prisma.incomeType.create({
@@ -202,6 +246,14 @@ export class TasksService {
   async getOutcomeTypes(userId): Promise<OutcomeType[]> {
     try {
       return await this.prisma.outcomeType.findMany({ where: { userId } });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async getEventTypes(userId): Promise<EventType[]> {
+    try {
+      return await this.prisma.eventType.findMany({ where: { userId } });
     } catch {
       throw new BadRequestException();
     }
@@ -253,6 +305,65 @@ export class TasksService {
           },
         },
       });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async putEventCheckingInfo(
+    userId,
+    eventId,
+    dateStart: string,
+    dateEnd: string,
+    putEventCheckingDto: PutEventCheckingDto,
+  ) {
+    try {
+      const event = await this.prisma.eventType.findFirst({
+        where: {
+          id: eventId,
+          userId: userId,
+        },
+      });
+
+      if (!event) return;
+
+      let start = startOfDay(new Date(dateStart));
+      const end = startOfDay(new Date(dateEnd));
+
+      while (start <= end) {
+        await this.prisma.eventCheck.delete({
+          where: {
+            eventId_date: {
+              eventId: eventId,
+              date: format(start, 'yyyy-MM-dd'),
+            },
+          },
+        });
+        start = addDays(start, 1);
+      }
+
+      for (const iterator of putEventCheckingDto.dates) {
+        await this.prisma.eventCheck.upsert({
+          create: {
+            event: {
+              connect: { id: eventId },
+            },
+            date: iterator,
+          },
+          update: {
+            event: {
+              connect: { id: eventId },
+            },
+            date: iterator,
+          },
+          where: {
+            eventId_date: {
+              date: iterator,
+              eventId: eventId,
+            },
+          },
+        });
+      }
     } catch {
       throw new BadRequestException();
     }
@@ -565,6 +676,7 @@ export class TasksService {
           userId: userId,
           isTracker: true,
           isDeleted: false,
+          isHoliday: false,
         },
         select: {
           id: true,
@@ -670,6 +782,7 @@ export class TasksService {
     date: string,
     dateStart: string,
     intervalLength: number,
+    repeatDays: RepeatDayTaskWithNotYearInterval[],
     repeatCount: number | undefined,
     taskRepeatDayCheck: RepeatDayTaskCheck[],
   ): boolean {
@@ -688,11 +801,7 @@ export class TasksService {
     const main = new Date(date);
     const start = new Date(dateStart);
 
-    if (main === start) {
-      return true;
-    }
-
-    if (main < start) {
+    if (main < start || !repeatDays.length) {
       return false;
     }
 
@@ -700,9 +809,11 @@ export class TasksService {
       return false;
     }
 
-    const dif = differenceInCalendarDays(main, start);
+    const index = (differenceInCalendarDays(main, start) % intervalLength) + 1;
 
-    return dif % intervalLength === 0;
+    const repeatDay = repeatDays.find((e) => e.dayFromBeginningInterval === index);
+
+    return !!repeatDay;
   }
 
   isWeekIntervalTrackerShowedInDate(
@@ -1122,6 +1233,7 @@ export class TasksService {
                 date,
                 tracker.date,
                 tracker.intervalLength ?? 1,
+                tracker.repeatDays,
                 tracker.repeatCount ?? undefined,
                 tracker.taskRepeatDayCheck,
               )
@@ -1226,6 +1338,7 @@ export class TasksService {
                 date,
                 tracker.date,
                 tracker.intervalLength ?? 1,
+                tracker.repeatDays,
                 tracker.repeatCount ?? undefined,
                 tracker.taskRepeatDayCheck,
               )
@@ -1319,6 +1432,7 @@ export class TasksService {
                 date,
                 t.date,
                 t.intervalLength ?? 1,
+                t.repeatDays,
                 t.repeatCount ?? undefined,
                 t.taskRepeatDayCheck,
               )
@@ -1438,6 +1552,7 @@ export class TasksService {
                 date,
                 tracker.date,
                 tracker.intervalLength ?? 1,
+                tracker.repeatDays,
                 tracker.repeatCount ?? undefined,
                 tracker.taskRepeatDayCheck,
               )
@@ -1592,9 +1707,11 @@ export class TasksService {
   async createTask(userId: number, createTaskDto: CreateTaskDto): Promise<TaskExt | null> {
     try {
       const createdDto: Prisma.TaskCreateInput = {
-        ...{ ...createTaskDto, foodId: undefined },
+        ...{ ...createTaskDto, foodId: undefined, outcomeTypeId: undefined, incomeTypeId: undefined },
         user: { connect: { id: userId } },
         food: createTaskDto.foodId ? { connect: { id: createTaskDto.foodId } } : undefined,
+        incomeType: createTaskDto.incomeTypeId ? { connect: { id: createTaskDto.incomeTypeId } } : undefined,
+        outcomeType: createTaskDto.outcomeTypeId ? { connect: { id: createTaskDto.outcomeTypeId } } : undefined,
         repeatDays: undefined,
         taskBuyings: undefined,
         repeatIfYearIntervalDays: undefined,
@@ -1673,8 +1790,10 @@ export class TasksService {
 
       return Promise.all(promiseArr).then(async () => {
         const updatedDto: Prisma.TaskUpdateInput = {
-          ...{ ...updateTaskDto, foodId: undefined },
+          ...{ ...updateTaskDto, foodId: undefined, outcomeTypeId: undefined, incomeTypeId: undefined },
           food: updateTaskDto.foodId ? { connect: { id: updateTaskDto.foodId } } : undefined,
+          incomeType: updateTaskDto.incomeTypeId ? { connect: { id: updateTaskDto.incomeTypeId } } : undefined,
+          outcomeType: updateTaskDto.outcomeTypeId ? { connect: { id: updateTaskDto.outcomeTypeId } } : undefined,
           repeatDays: undefined,
           repeatIfYearIntervalDays: undefined,
           taskRepeatDayCheck: undefined,
