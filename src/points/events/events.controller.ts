@@ -38,7 +38,10 @@ export class EventsController {
   }
 
   //@UseGuards(AuthGuard)
-  @Put(':id/CheckingInfo')
+  @ApiOperation({
+    summary: 'Установить дни ',
+  })
+  @Put(':id/сheckingInfo')
   async eventTypeCheckingInfo(
     @Req() req: RequestExt,
     @Param('id') id: number,
@@ -58,6 +61,9 @@ export class EventsController {
   }
   //получение (кол-во, кол-во выполненных) по конкретному типу события за период
   //@UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Создать тип события',
+  })
   @Get(':id/progress')
   async eventProgress(
     @Param('id') id: number,
