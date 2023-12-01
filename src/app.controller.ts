@@ -1,11 +1,11 @@
 import { Controller, Next, Patch, Post, Put, Req } from '@nestjs/common';
 import * as moment from 'moment';
 import { AppService } from './app.service';
-import { RequestExt } from './auth/entities/request-ext.entity';
+import { RequestExt } from './points/auth/entities/request-ext.entity';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly appService: AppService) { }
 
   logBody(@Req() req: RequestExt, @Next() next: () => unknown) {
     if (req.body)

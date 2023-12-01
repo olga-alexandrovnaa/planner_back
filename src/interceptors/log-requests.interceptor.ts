@@ -1,8 +1,8 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
 import * as moment from 'moment';
-import { RequestExt } from '../auth/entities/request-ext.entity';
 import { Response } from 'express';
+import { RequestExt } from '../points/auth/entities/request-ext.entity';
 
 @Injectable()
 export class LogRequestsInterceptor implements NestInterceptor {
