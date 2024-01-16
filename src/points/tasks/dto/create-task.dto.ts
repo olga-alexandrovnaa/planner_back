@@ -49,6 +49,12 @@ export class CreateTaskDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(({ value }) => Boolean(value))
+  @IsBoolean()
+  readonly isHoliday?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsNumberOrNull()
   readonly foodId?: number;
 

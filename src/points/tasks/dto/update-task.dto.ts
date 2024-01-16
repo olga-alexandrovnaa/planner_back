@@ -38,6 +38,12 @@ export class UpdateTaskDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(({ value }) => Boolean(value))
+  @IsBoolean()
+  readonly isHoliday?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => (value ? String(value).trim() : null))
   @IsStringOrNull()
   readonly intervalPart?: IntervalType;
