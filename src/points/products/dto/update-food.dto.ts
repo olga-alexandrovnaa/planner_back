@@ -4,7 +4,7 @@ import { Transform, Type } from 'class-transformer';
 import { IsOptional, IsString, ValidateNested } from 'class-validator';
 import { IsStringOrNull } from '../../../decorators/IsStringOrNull.decorator';
 import { IsNumberOrNull } from '../../../decorators/IsNumberOrNull.decorator';
-import { IngregientDto } from './ingredient.dto';
+import { RecipeStepDto } from './recipe-step.dto';
 
 export class UpdateFoodDto {
   @ApiPropertyOptional()
@@ -41,17 +41,11 @@ export class UpdateFoodDto {
   @IsOptional()
   @Transform(({ value }) => (value ? String(value).trim() : null))
   @IsStringOrNull()
-  readonly recipe?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Transform(({ value }) => (value ? String(value).trim() : null))
-  @IsStringOrNull()
   readonly foodType?: FoodType;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Type(() => IngregientDto)
+  @Type(() => RecipeStepDto)
   @ValidateNested()
-  readonly ingredients?: IngregientDto[];
+  readonly recipeSteps?: RecipeStepDto[];
 }

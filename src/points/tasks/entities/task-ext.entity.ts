@@ -13,10 +13,14 @@ export const TaskExtInclude: Prisma.TaskInclude = {
   },
   food: {
     include: {
-      ingredients: {
+      recipeSteps: {
         include: {
-          measureUnit: true,
-          product: true,
+          ingredients: {
+            include: {
+              measureUnit: true,
+              product: true,
+            },
+          },
         },
       },
     },

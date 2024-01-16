@@ -95,6 +95,7 @@ model Task {
 
   hour Int @default(12)
   minute Int @default(0)
+  foodChapter Int @default(1)
 
   isHoliday          Boolean @default(false)
   isFood             Boolean @default(false)
@@ -132,9 +133,9 @@ model Food {
   calories      Float?
 
   foodType    FoodType?
-  recipe      String?
-  ingredients Ingredient[]
 
+  recipeSteps RecipeStep[]
+  
   user   User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   userId Int?
 
@@ -142,6 +143,20 @@ model Food {
   deletedAt DateTime? @db.Timestamptz()
 
   tasks Task[]
+}
+
+model RecipeStep {
+  id Int @id @default(autoincrement())
+
+  foodId Int 
+  food Food @relation(fields: [foodId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  stepNumber Int
+
+  recipe      String?
+  ingredients Ingredient[]
+
+  @@unique([foodId, stepNumber])
 }
 
 model MonthMoneyInfo {
@@ -227,8 +242,8 @@ model RepeatDayTaskCheck {
 
   date String
 
-  hour Int @default(12)
-  minute Int @default(0)
+  hour Int?
+  minute Int?
 
   newDate String?
 
@@ -257,8 +272,8 @@ model RepeatDayTaskWithNotYearInterval {
   weekNumber    WeekNumber?
   weekDayNumber Int?
 
-  hour Int @default(12)
-  minute Int @default(0)
+  hour Int?
+  minute Int?
 
   moveTypeIfDayNotExists MoveTypeIfDayNotExists?
 }
@@ -273,8 +288,8 @@ model RepeatDayTaskWithYearInterval {
   yearDateDay       Int
   yearDateMonth     Int
 
-  hour Int @default(12)
-  minute Int @default(0)
+  hour Int?
+  minute Int?
 
   moveTypeIfDayNotExists MoveTypeIfDayNotExists?
 }
@@ -328,8 +343,8 @@ model OutcomeMeasureUnit {
 model Ingredient {
   id Int @id @default(autoincrement())
 
-  foodId Int
-  food   Food @relation(fields: [foodId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  recipeStepId Int
+  recipeStep   RecipeStep @relation(fields: [recipeStepId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   productId Int
   product   Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -338,7 +353,7 @@ model Ingredient {
   measureUnitId Int?
   measureUnit   MeasureUnit? @relation(fields: [measureUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@unique([foodId, productId])
+  @@unique([recipeStepId, productId])
 }
 
 model Buying {

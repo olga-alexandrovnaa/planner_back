@@ -1,9 +1,9 @@
 import { Prisma } from '@prisma/client';
-import { IngredientExtInclude } from './ingredient-ext.entity';
+import { RecipeStepExtInclude } from '../../products/entities/recipe-step-ext.entity';
 
 export const FoodExtInclude: Prisma.FoodInclude = {
-  ingredients: {
-    include: IngredientExtInclude,
+  recipeSteps: {
+    include: RecipeStepExtInclude,
   },
 };
 

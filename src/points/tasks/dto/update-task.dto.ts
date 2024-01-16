@@ -2,7 +2,6 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IntervalType } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import { IsBoolean, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { IngregientDto } from './ingredient.dto';
 import { RepeatDayTaskCheckDto } from './task-repeat-day-check.dto';
 import { RepeatDaysDto } from './repeat-days.dto';
 import { RepeatDaysIfYearDto } from './repeat-days-if-year.dto';
@@ -15,6 +14,21 @@ export class UpdateTaskDto {
   @Transform(({ value }) => String(value).trim())
   @IsString()
   readonly name?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly hour?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly minute?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly foodChapter?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -78,12 +92,6 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsNumberOrNull()
   readonly foodCout?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => IngregientDto)
-  @ValidateNested()
-  readonly ingredients?: IngregientDto[];
 
   @ApiPropertyOptional()
   @IsOptional()

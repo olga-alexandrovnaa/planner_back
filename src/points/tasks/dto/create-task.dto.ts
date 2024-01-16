@@ -14,15 +14,20 @@ export class CreateTaskDto {
   @IsString()
   readonly date: string;
 
-  @ApiProperty()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  readonly hour: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly hour?: number;
 
-  @ApiProperty()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  readonly minute: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly minute?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberOrNull()
+  readonly foodChapter?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

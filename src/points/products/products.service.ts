@@ -1,8 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
-import { Food, FoodType, MeasureUnit, Prisma, ProductType } from '@prisma/client';
+import { Food, FoodType, MeasureUnit, Prisma, ProductType, RecipeStep } from '@prisma/client';
 import 'multer';
-import { tasksType } from './entities/task-type.entity';
 import { addDays, format, startOfDay } from 'date-fns';
 import { ProductExt, ProductExtInclude } from './entities/product-ext.entity';
 import { CreateFoodDto } from './dto/create-food.dto';
@@ -10,16 +9,18 @@ import { FoodExt, FoodExtInclude } from './entities/food-ext.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateFoodDto } from './dto/update-food.dto';
 import { MeasureUnitExt, MeasureUnitExtInclude } from './entities/measure-unit-ext.entity';
-import { IngredientExt } from './entities/ingredient-ext.entity';
+import { IngredientExt, IngredientExtInclude } from './entities/ingredient-ext.entity';
 import { OutcomeMeasureUnitExtInclude } from './entities/outcome-measure-unit-ext.entity';
 import { TasksService } from '../tasks/tasks.service';
+import { IngregientDto } from './dto/ingredient.dto';
+import { tasksType } from '../tasks/entities/task-type.entity';
 
 @Injectable()
 export class ProductsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tasksService: TasksService,
-  ) { }
+  ) {}
   async foodExt(id: number): Promise<FoodExt | null> {
     try {
       const data = await this.prisma.food.findUnique({
@@ -121,12 +122,20 @@ export class ProductsService {
       options: {
         value: number;
         label: string;
-        data: FoodExt;
+        data: Food & {
+          recipeSteps: (RecipeStep & {
+            ingredients: IngredientExt[];
+          })[];
+        };
       }[];
     }[]
   > {
     try {
-      const data = await this.prisma.food.findMany({
+      const data: (Food & {
+        recipeSteps: (RecipeStep & {
+          ingredients: IngredientExt[];
+        })[];
+      })[] = await this.prisma.food.findMany({
         where: {
           OR: [
             {
@@ -141,19 +150,35 @@ export class ProductsService {
             },
           ],
         },
-        include: FoodExtInclude,
+        include: {
+          recipeSteps: {
+            include: {
+              ingredients: {
+                include: IngredientExtInclude,
+              },
+            },
+          },
+        },
       });
 
       const end = format(addDays(startOfDay(new Date(date)), -3), 'yyyy-MM-dd');
 
       const ingredients = await this.allIngredients(userId, end, date);
 
-      const foodWithSameIngredients: FoodExt[] = [];
+      const foodWithSameIngredients: (Food & {
+        recipeSteps: (RecipeStep & {
+          ingredients: IngredientExt[];
+        })[];
+      })[] = [];
 
       for (const iterator of data) {
-        if (iterator.ingredients) {
+        if (iterator.recipeSteps) {
+          let recipeStepsIngredients: IngredientExt[] = [];
+          for (const step of iterator.recipeSteps) {
+            recipeStepsIngredients = [...recipeStepsIngredients, ...step.ingredients];
+          }
           let count = 0;
-          for (const i of iterator.ingredients) {
+          for (const i of recipeStepsIngredients) {
             if (!ingredients.find((e) => e.product.id === i.productId)) {
               count += 1;
               if (count > 3) break;
@@ -251,29 +276,35 @@ export class ProductsService {
         };
       })[] = [];
       for (const element of food) {
-        const ingr = await this.prisma.ingredient.findMany({
+        const steps = await this.prisma.recipeStep.findMany({
           where: {
             foodId: element.foodId,
           },
           include: {
-            product: {
+            ingredients: {
               include: {
-                ...ProductExtInclude,
-                measureUnit: {
+                product: {
                   include: {
-                    outcomeChildren: true,
+                    ...ProductExtInclude,
+                    measureUnit: {
+                      include: {
+                        outcomeChildren: true,
+                      },
+                    },
                   },
                 },
+                measureUnit: true,
+                recipeStep: true,
               },
             },
-            measureUnit: true,
-            food: true,
           },
         });
 
-        for (let index = 0; index < element.count; index++) {
-          ingredients = [...ingredients, ...ingr];
-        }
+        steps.forEach((step) => {
+          for (let index = 0; index < element.count; index++) {
+            ingredients = [...ingredients, ...step.ingredients];
+          }
+        });
       }
 
       const data: {
@@ -338,15 +369,20 @@ export class ProductsService {
     const createdDto: Prisma.FoodCreateInput = {
       ...createFoodDto,
       user: { connect: { id: userId } },
-      ingredients: undefined,
+      recipeSteps: undefined,
     };
 
     const created = await this.createFoodMainFields(createdDto);
 
-    if (created && createFoodDto.ingredients) {
+    if (created && createFoodDto.recipeSteps) {
       await this.updateFoodIngredients(
         created.id,
-        createFoodDto.ingredients.map((e) => ({ ...e, foodId: created.id, id: undefined })),
+        createFoodDto.recipeSteps.map((e) => ({
+          recipe: e.recipe,
+          stepNumber: e.stepNumber,
+          foodId: created.id,
+          ingredients: e.ingredients ?? [],
+        })),
       );
     }
 
@@ -361,15 +397,20 @@ export class ProductsService {
   async updateFood(id: number, updateFoodDto: UpdateFoodDto): Promise<FoodExt | null> {
     const updatedDto: Prisma.FoodUpdateInput = {
       ...updateFoodDto,
-      ingredients: undefined,
+      recipeSteps: undefined,
     };
 
     const updated = await this.updateFoodMainFields(id, updatedDto);
 
-    if (updated && updateFoodDto.ingredients) {
+    if (updated && updateFoodDto.recipeSteps) {
       await this.updateFoodIngredients(
         updated.id,
-        updateFoodDto.ingredients.map((e) => ({ ...e, foodId: updated.id, id: undefined })),
+        updateFoodDto.recipeSteps.map((e) => ({
+          recipe: e.recipe,
+          stepNumber: e.stepNumber,
+          foodId: updated.id,
+          ingredients: e.ingredients ?? [],
+        })),
       );
     }
 
@@ -408,16 +449,37 @@ export class ProductsService {
     }
   }
 
-  async updateFoodIngredients(id: number, data: Prisma.IngredientCreateManyInput[]) {
+  async updateFoodIngredients(
+    id: number,
+    data: (Prisma.RecipeStepCreateManyInput & { ingredients: IngregientDto[] })[],
+  ) {
     try {
       await this.prisma.ingredient.deleteMany({
+        where: {
+          recipeStep: {
+            foodId: id,
+          },
+        },
+      });
+
+      await this.prisma.recipeStep.deleteMany({
         where: {
           foodId: id,
         },
       });
 
-      await this.prisma.ingredient.createMany({
-        data: data,
+      data.forEach(async (element) => {
+        const created = await this.prisma.recipeStep.create({
+          data: { ...element, ingredients: undefined },
+        });
+
+        await this.prisma.ingredient.createMany({
+          data: element.ingredients.map((e) => ({
+            ...e,
+            recipeStepId: created.id,
+            id: undefined,
+          })),
+        });
       });
     } catch {
       throw new BadRequestException();

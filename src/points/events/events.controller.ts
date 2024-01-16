@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, Put } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, Put, Delete } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import { EventsService } from './events.service';
@@ -16,7 +16,7 @@ import { PutEventCheckingDto } from './dto/put-event-checking.dto';
 // })
 // @ApiResponse({ status: 200, type: Object })
 export class EventsController {
-  constructor(private readonly eventsService: EventsService) { }
+  constructor(private readonly eventsService: EventsService) {}
 
   //@UseGuards(AuthGuard)
   @ApiOperation({
@@ -59,19 +59,20 @@ export class EventsController {
       ),
     };
   }
-  //получение (кол-во, кол-во выполненных) по конкретному типу события за период
+
   //@UseGuards(AuthGuard)
   @ApiOperation({
-    summary: 'Создать тип события',
+    summary: 'Удалить тип события',
   })
-  @Get(':id/progress')
-  async eventProgress(
-    @Param('id') id: number,
-    @Query('dateStart') dateStart: string,
-    @Query('dateEnd') dateEnd: string,
-  ) {
+  @Delete()
+  async deleteEvent(@Req() req: RequestExt, @Param('id') id: number) {
+    const event = await this.eventsService.getEventType(id);
+    if (event?.userId !== /*req.user.id*/ 1) {
+      return;
+    }
+
     return {
-      // data: await this.eventsService.taskProgress(id, dateStart, dateEnd),
+      data: await this.eventsService.deleteEventType(id),
     };
   }
 }

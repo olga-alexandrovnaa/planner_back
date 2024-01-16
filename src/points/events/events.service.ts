@@ -8,13 +8,34 @@ import { PutEventCheckingDto } from './dto/put-event-checking.dto';
 
 @Injectable()
 export class EventsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async createEventType(userId, createEventTypeDto: CreateEventTypeDto): Promise<EventType> {
     try {
       return await this.prisma.eventType.create({
         data: { ...createEventTypeDto, userId },
       });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async deleteEventType(id: number): Promise<EventType> {
+    try {
+      await this.prisma.eventCheck.deleteMany({
+        where: { eventId: id },
+      });
+      return await this.prisma.eventType.delete({
+        where: { id },
+      });
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async getEventType(id: number): Promise<EventType | null> {
+    try {
+      return await this.prisma.eventType.findFirst({ where: { id } });
     } catch {
       throw new BadRequestException();
     }

@@ -120,6 +120,8 @@ export class TasksController {
             newDate: null,
             note: '',
             trackerId: task.id,
+            hour: null,
+            minute: null,
           },
         ],
       };
